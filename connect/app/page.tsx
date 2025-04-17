@@ -22,7 +22,7 @@ export default function Home() {
   const [pgn, setPgn] = useState("");
 
   useEffect(() => {
-    fetch("/api/games")
+    fetch("connect/api/games")
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch");
         return res.json();
@@ -34,7 +34,7 @@ export default function Home() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     try {
-      const res = await fetch("/api/games", {
+      const res = await fetch("connect/api/games", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, pgn }),
