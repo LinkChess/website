@@ -1,8 +1,13 @@
 import { NextResponse } from "next/server";
 
-let store: Array<{ id: number; name: string; status: string }> = [
-  { id: 1, name: "Game 1", status: "Active" },
-  { id: 2, name: "Game 2", status: "Completed" },
+interface ChessGame {
+  id: number;
+  name: string;
+  pgn: string;
+}
+
+let store: ChessGame[] = [
+  { id: 1, name: "Sample Game", pgn: "1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6" },
 ];
 
 export async function GET() {
@@ -10,8 +15,12 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const game = await request.json();
-  store.push({ ...game, id: store.length + 1 });
-  console.log("Incoming game data:", game);
-  return NextResponse.json({ message: "Game data received successfully" });
+  const { name, pgn } = await request.json();
+  const game: ChessGame = {
+    id: store.length + 1,
+    name,
+    pgn,
+  };
+  store.push(game);
+  return NextResponse.json(game);
 }

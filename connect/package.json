@@ -17,6 +17,8 @@
     "typescript": "^5",
     "@types/node": "^20",
     "@types/react": "^19",
+    "chess.js": "^1.2.0",
+    "react-chessboard": "^4.7.3",
     "@types/react-dom": "^19",
     "@tailwindcss/postcss": "^4",
     "tailwindcss": "^4"
