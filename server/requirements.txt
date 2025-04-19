@@ -1,0 +1,5 @@
+chess
+sqlalchemy
+flask
+pyserial
+flask-cors
