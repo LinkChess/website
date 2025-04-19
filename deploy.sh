@@ -6,6 +6,28 @@ set -e
 echo "Building the site..."
 npm run build
 
+# Create a 404.html file that redirects to the main app
+echo "Creating 404.html redirect page..."
+cat > dist/404.html << 'EOL'
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Redirecting...</title>
+  <script>
+    // Get the current path excluding the domain
+    var path = window.location.pathname;
+    // Redirect to the root with a hash fragment
+    window.location.href = '/#' + path;
+  </script>
+  <meta http-equiv="refresh" content="0;URL='/'">
+</head>
+<body>
+  <p>If you are not redirected automatically, <a href="/">click here</a>.</p>
+</body>
+</html>
+EOL
+
 # Create a script to run on the server
 echo "Creating server setup script..."
 cat > server-setup.sh << 'EOL'
@@ -31,22 +53,31 @@ server {
     root /var/www/chesslink.site;
     index index.html;
     
-    # Handle all routes for SPA
-    location / {
-        try_files $uri $uri/ /index.html =404;
-        add_header Cache-Control "no-store, no-cache, must-revalidate";
-    }
-
-    # Explicitly handle specific routes that were giving 404 errors
-    location ~ ^/(demo|play|sounds)(/|$) {
-        try_files $uri /index.html;
-    }
-    
-    # Serve assets directly
-    location /assets/ {
+    # Most restrictive rule first: assets
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
         try_files $uri =404;
         expires 30d;
         add_header Cache-Control "public, max-age=2592000";
+        access_log off;
+    }
+    
+    # Specific routes that need SPA handling
+    location ~ ^/(demo|play|sounds) {
+        try_files $uri $uri/ /index.html;
+        add_header Cache-Control "no-store, no-cache, must-revalidate";
+    }
+    
+    # Default handling for all other routes
+    location / {
+        try_files $uri $uri/ /index.html;
+        add_header Cache-Control "no-store, no-cache, must-revalidate";
+    }
+    
+    # Explicitly include 404 handling
+    error_page 404 /404.html;
+    location = /404.html {
+        root /var/www/chesslink.site;
+        internal;
     }
 }
 CONF
@@ -70,22 +101,31 @@ server {
     root /var/www/chesslink.site;
     index index.html;
     
-    # Handle all routes for SPA
-    location / {
-        try_files $uri $uri/ /index.html =404;
-        add_header Cache-Control "no-store, no-cache, must-revalidate";
-    }
-
-    # Explicitly handle specific routes that were giving 404 errors
-    location ~ ^/(demo|play|sounds)(/|$) {
-        try_files $uri /index.html;
-    }
-    
-    # Serve assets directly
-    location /assets/ {
+    # Most restrictive rule first: assets
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
         try_files $uri =404;
         expires 30d;
         add_header Cache-Control "public, max-age=2592000";
+        access_log off;
+    }
+    
+    # Specific routes that need SPA handling
+    location ~ ^/(demo|play|sounds) {
+        try_files $uri $uri/ /index.html;
+        add_header Cache-Control "no-store, no-cache, must-revalidate";
+    }
+    
+    # Default handling for all other routes
+    location / {
+        try_files $uri $uri/ /index.html;
+        add_header Cache-Control "no-store, no-cache, must-revalidate";
+    }
+    
+    # Explicitly include 404 handling
+    error_page 404 /404.html;
+    location = /404.html {
+        root /var/www/chesslink.site;
+        internal;
     }
 }
 CONF
@@ -138,10 +178,29 @@ nginx -t
 if [ $? -eq 0 ]; then
   echo "Nginx configuration test passed, restarting..."
   systemctl restart nginx 2>/dev/null || service nginx restart 2>/dev/null || /etc/init.d/nginx restart 2>/dev/null
+
+  # Verify nginx is running
+  sleep 2
+  if pgrep nginx > /dev/null; then
+    echo "Nginx is running correctly."
+  else
+    echo "WARNING: Nginx might not be running! Starting it..."
+    systemctl start nginx 2>/dev/null || service nginx start 2>/dev/null || /etc/init.d/nginx start 2>/dev/null
+  fi
 else
   echo "ERROR: Nginx configuration test failed!"
   exit 1
 fi
+
+# Test the routes that were giving 404s
+echo "Testing routes with curl..."
+for route in "/" "/demo" "/play" "/sounds"; do
+  STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost$route)
+  echo "Route $route returned status: $STATUS"
+  if [ "$STATUS" == "404" ]; then
+    echo "WARNING: Route $route is still returning 404!"
+  fi
+done
 
 echo "Server setup complete!"
 EOL
@@ -169,5 +228,7 @@ ssh -p 22 root@107.175.111.165 "bash ~/server-setup.sh"
 rm server-setup.sh
 
 echo "Deployment complete! Your site should now be live at https://chesslink.site"
-echo "If you're still seeing errors, try clearing your browser cache or waiting a few minutes."
-echo "You may need to run the script again if the issues persist." 
+echo "If you're still seeing errors, please try the following:"
+echo "1. Clear your browser cache completely or use private/incognito mode"
+echo "2. Try accessing the site from a different browser or device"
+echo "3. Wait a few minutes for DNS changes to propagate" 
