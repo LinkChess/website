@@ -31,14 +31,22 @@ server {
     root /var/www/chesslink.site;
     index index.html;
     
-    # Allow all methods
+    # Handle all routes for SPA
     location / {
-        try_files $uri $uri/ /index.html;
+        try_files $uri $uri/ /index.html =404;
+        add_header Cache-Control "no-store, no-cache, must-revalidate";
     }
 
-    # Explicitly allow access to assets
-    location /assets {
+    # Explicitly handle specific routes that were giving 404 errors
+    location ~ ^/(demo|play|sounds)(/|$) {
+        try_files $uri /index.html;
+    }
+    
+    # Serve assets directly
+    location /assets/ {
         try_files $uri =404;
+        expires 30d;
+        add_header Cache-Control "public, max-age=2592000";
     }
 }
 CONF
@@ -62,14 +70,22 @@ server {
     root /var/www/chesslink.site;
     index index.html;
     
-    # Allow all methods
+    # Handle all routes for SPA
     location / {
-        try_files $uri $uri/ /index.html;
+        try_files $uri $uri/ /index.html =404;
+        add_header Cache-Control "no-store, no-cache, must-revalidate";
     }
 
-    # Explicitly allow access to assets
-    location /assets {
+    # Explicitly handle specific routes that were giving 404 errors
+    location ~ ^/(demo|play|sounds)(/|$) {
+        try_files $uri /index.html;
+    }
+    
+    # Serve assets directly
+    location /assets/ {
         try_files $uri =404;
+        expires 30d;
+        add_header Cache-Control "public, max-age=2592000";
     }
 }
 CONF
