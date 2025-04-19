@@ -87,11 +87,11 @@ See the [Software Documentation](/docs/category/software) section of this site f
 - ✅ Hardware architecture designed
 - ✅ Sensor and LED testing completed
 - ✅ Software interface working
-- 🔄 PCB design in progress
-- 🔄 Final component selection being evaluated
-- 🔄 4×4 prototype board operational
-- ⬜ Full 8×8 board assembly
-- ⬜ Case design and manufacturing
+- ✅ PCB design in progress
+- ✅ Final component selection being evaluated
+- ✅ 4×4 prototype board operational
+- 🔄 Full 8×8 board assembly
+- 🔄 Case design and manufacturing
 
 *(Track progress and details in the Development section of the documentation.)*
 
