@@ -1,8 +1,20 @@
 {
-  // This file is not used in compilation. It is here just for a nice editor experience.
-  "extends": "@docusaurus/tsconfig",
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.node.json" }
+  ],
   "compilerOptions": {
-    "baseUrl": "."
-  },
-  "exclude": [".docusaurus", "build"]
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    },
+    "noImplicitAny": false,
+    "noUnusedParameters": false,
+    "skipLibCheck": true,
+    "allowJs": true,
+    "noUnusedLocals": false,
+    "strictNullChecks": false,
+    "jsx": "react"
+  }
 }
