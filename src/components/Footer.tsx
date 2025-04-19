@@ -50,7 +50,7 @@ const Footer: React.FC = () => {
               </li>
             </ul>
             <div className="mt-6">
-              <a href="https://github.com/lklkevin/chesslink" className="btn-accent rounded-md inline-block">View on GitHub</a>
+              <a href="https://github.com/LinkChess/website" className="btn-accent rounded-md inline-block">View on GitHub</a>
             </div>
           </div>
         </div>
