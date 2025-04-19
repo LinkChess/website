@@ -1,44 +1,51 @@
-import type {ReactNode} from 'react';
-import clsx from 'clsx';
-import Link from '@docusaurus/Link';
-import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
-import Layout from '@theme/Layout';
-import HomepageFeatures from '@site/src/components/HomepageFeatures';
-import Heading from '@theme/Heading';
 
-import styles from './index.module.css';
+import React, { useEffect } from 'react';
+import Navbar from '@/components/Navbar';
+import Hero from '@/components/Hero';
+import Features from '@/components/Features';
+import Overview from '@/components/Overview';
+import ChessBoard from '@/components/ChessBoard';
+import Footer from '@/components/Footer';
 
-function HomepageHeader() {
-  const {siteConfig} = useDocusaurusContext();
+const Index: React.FC = () => {
+  // Add smooth scroll behavior for anchor links
+  useEffect(() => {
+    const handleAnchorClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'A' && target.getAttribute('href')?.startsWith('#')) {
+        e.preventDefault();
+        const href = target.getAttribute('href');
+        if (href === '#') return;
+        
+        const targetElement = document.querySelector(href || '');
+        if (targetElement) {
+          window.scrollTo({
+            top: targetElement.getBoundingClientRect().top + window.scrollY - 80,
+            behavior: 'smooth'
+          });
+          
+          // Update URL without reload
+          history.pushState(null, '', href);
+        }
+      }
+    };
+    
+    document.addEventListener('click', handleAnchorClick);
+    return () => document.removeEventListener('click', handleAnchorClick);
+  }, []);
+  
   return (
-    <header className={clsx('hero hero--primary', styles.heroBanner)}>
-      <div className="container">
-        <Heading as="h1" className="hero__title">
-          {siteConfig.title}
-        </Heading>
-        <p className="hero__subtitle">{siteConfig.tagline}</p>
-        <div className={styles.buttons}>
-          <Link
-            className="button button--secondary button--lg"
-            to="/docs/intro">
-            Docusaurus Tutorial - 5min ⏱️
-          </Link>
-        </div>
-      </div>
-    </header>
-  );
-}
-
-export default function Home(): ReactNode {
-  const {siteConfig} = useDocusaurusContext();
-  return (
-    <Layout
-      title={`Hello from ${siteConfig.title}`}
-      description="Description will go into a meta tag in <head />">
-      <HomepageHeader />
+    <div className="min-h-screen bg-white">
+      <Navbar />
       <main>
-        <HomepageFeatures />
+        <Hero />
+        <Features />
+        <Overview />
+        <ChessBoard />
       </main>
-    </Layout>
+      <Footer />
+    </div>
   );
-}
+};
+
+export default Index;
