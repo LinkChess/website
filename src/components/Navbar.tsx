@@ -1,23 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import { Menu, X } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 
 interface NavLink {
   name: string;
   href: string;
 }
 
-const navLinks: NavLink[] = [
-  { name: 'Overview', href: '/' },
-  { name: 'Features', href: '#features' },
-  { name: 'Hardware', href: '#hardware' },
-  { name: 'Software', href: '#software' },
-  { name: 'Demo', href: '/demo' },
-  { name: 'Play Chess', href: '/play' },
-];
-
 const Navbar: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const location = useLocation();
+
+  // Determine if we're on the homepage
+  const isHomePage = location.pathname === '/';
+
+  // Define navigation links with proper paths
+  const navLinks: NavLink[] = [
+    { name: 'Overview', href: '/' },
+    { name: 'Features', href: isHomePage ? '#features' : '/#features' },
+    { name: 'Hardware', href: isHomePage ? '#hardware' : '/#hardware' },
+    { name: 'Software', href: isHomePage ? '#software' : '/#software' },
+    { name: 'Demo', href: '/demo' },
+    { name: 'Play Chess', href: '/play' },
+  ];
 
   useEffect(() => {
     const handleScroll = () => {
@@ -37,7 +43,7 @@ const Navbar: React.FC = () => {
       <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center">
-            <a href="#" className="flex items-center">
+            <a href="/" className="flex items-center">
               <span className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
                 ChessLink
               </span>
