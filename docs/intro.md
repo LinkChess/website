@@ -1,47 +1,16 @@
----
-sidebar_position: 1
----
+# ChessLink Project Documentation
 
-# Tutorial Intro
+Welcome to the documentation for the ChessLink project!
 
-Let's discover **Docusaurus in less than 5 minutes**.
+ChessLink is a smart hardware chess interface designed to bridge the gap between physical chess play and the digital world. It uses custom sensor arrays on a physical board to detect moves in real-time and synchronizes them with a web application for analysis, training, and connected play.
 
-## Getting Started
+## Project Components
 
-Get started by **creating a new site**.
+This project consists of several key parts:
 
-Or **try Docusaurus immediately** with **[docusaurus.new](https://docusaurus.new)**.
+*   **Hardware:** The physical chessboard with embedded sensors (Hall effect, phototransistors), RGB LEDs, and microcontrollers (ESP32-C3 master, ATtiny slaves).
+*   **Backend Server:** A Python Flask application that communicates with the hardware via serial port, processes chess moves, validates them, manages game state, and saves games to a database.
+*   **Frontend:** A Vite + React web application built with TypeScript and Tailwind CSS that provides the user interface for viewing game state, playing games, accessing demos, and managing settings.
+*   **Database:** A SQLite database (`server/chess_games.db`) used by the backend to store game history and metadata.
 
-### What you'll need
-
-- [Node.js](https://nodejs.org/en/download/) version 18.0 or above:
-  - When installing Node.js, you are recommended to check all checkboxes related to dependencies.
-
-## Generate a new site
-
-Generate a new Docusaurus site using the **classic template**.
-
-The classic template will automatically be added to your project after you run the command:
-
-```bash
-npm init docusaurus@latest my-website classic
-```
-
-You can type this command into Command Prompt, Powershell, Terminal, or any other integrated terminal of your code editor.
-
-The command also installs all necessary dependencies you need to run Docusaurus.
-
-## Start your site
-
-Run the development server:
-
-```bash
-cd my-website
-npm run start
-```
-
-The `cd` command changes the directory you're working with. In order to work with your newly created Docusaurus site, you'll need to navigate the terminal there.
-
-The `npm run start` command builds your website locally and serves it through a development server, ready for you to view at http://localhost:3000/.
-
-Open `docs/intro.md` (this page) and edit some lines: the site **reloads automatically** and displays your changes.
+Navigate through the documentation sections to learn more about each component, how to set up the system, and how to contribute. 
