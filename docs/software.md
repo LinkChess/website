@@ -47,6 +47,29 @@ Key frontend components include:
 
 ## Data Flow (Hardware -> Backend -> Frontend)
 
+```mermaid
+sequenceDiagram
+    participant Board as ChessLink Board
+    participant Server as Backend (Flask)
+    participant Frontend as Web App (React)
+
+    Board->>Server: Sends FEN String (via Serial)
+    activate Server
+    Server->>Server: Validates FEN
+    Server->>Server: Updates Game State (chessClass.py)
+    Server->>DB: Saves move/state
+    deactivate Server
+
+    loop Poll for Updates
+        Frontend->>Server: GET /games/:game_id/state
+        activate Server
+        Server->>DB: Loads current state
+        Server-->>Frontend: Returns Game State (JSON)
+        deactivate Server
+        Frontend->>Frontend: Updates UI based on state
+    end
+```
+
 1.  A physical move is made on the board.
 2.  The hardware sensors detect the change.
 3.  The microcontroller(s) process the sensor data and generate a FEN string representing the new board state.

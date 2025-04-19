@@ -13,4 +13,6 @@ This project consists of several key parts:
 *   **Frontend:** A Vite + React web application built with TypeScript and Tailwind CSS that provides the user interface for viewing game state, playing games, accessing demos, and managing settings.
 *   **Database:** A SQLite database (`server/chess_games.db`) used by the backend to store game history and metadata.
 
-Navigate through the documentation sections to learn more about each component, how to set up the system, and how to contribute. 
+Navigate through the documentation sections to learn more about each component, how to set up the system, and how to contribute.
+
+*(Note: This documentation supports [Mermaid](https://mermaid.js.org/) syntax for diagrams and flowcharts. You'll see examples in the Hardware and Software sections.)* 

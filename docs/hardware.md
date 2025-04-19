@@ -20,4 +20,21 @@ The ChessLink hardware is designed to detect chess moves accurately on a physica
 
 ## Functionality
 
-The hardware detects piece movement using the Hall effect sensors. This data is processed by the microcontrollers and sent to the backend server via the serial connection. The LEDs provide visual feedback based on instructions received back from the server or based on internal logic. 
+The hardware detects piece movement using the Hall effect sensors. This data is processed by the microcontrollers and sent to the backend server via the serial connection. The LEDs provide visual feedback based on instructions received back from the server or based on internal logic.
+
+```mermaid
+graph TD
+    subgraph Chessboard
+        A[8x8 Sensor Matrix] --> B(ATtiny Slaves);
+        C[8x8 LED Matrix] --> B;
+    end
+    subgraph ProcessingUnit
+        B --> D{ESP32-C3 Master};
+    end
+    D --> E[Backend Server (via USB/Serial)];
+    E --> D; subgraph Communication
+    direction LR
+    end
+```
+
+_Diagram: High-level hardware component interaction._ 
