@@ -31,9 +31,12 @@ graph TD
     subgraph ProcessingUnit
         B --> D{ESP32-C3 Master};
     end
-    D --> E[Backend Server (via USB/Serial)];
-    E --> D; subgraph Communication
-    direction LR
+    D --> E["Backend Server (via USB/Serial)"];
+    E --> D;
+    subgraph Communication
+        direction LR
+        D -.-> E;
+        E -.-> D;
     end
 ```
 
