@@ -6,27 +6,12 @@ set -e
 echo "Building the site..."
 npm run build
 
-# Create a 404.html file that redirects to the main app
-echo "Creating 404.html redirect page..."
-cat > dist/404.html << 'EOL'
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>Redirecting...</title>
-  <script>
-    // Get the current path excluding the domain
-    var path = window.location.pathname;
-    // Redirect to the root with a hash fragment
-    window.location.href = '/#' + path;
-  </script>
-  <meta http-equiv="refresh" content="0;URL='/'">
-</head>
-<body>
-  <p>If you are not redirected automatically, <a href="/">click here</a>.</p>
-</body>
-</html>
-EOL
+# Create copies of index.html for each problematic route
+echo "Creating static route files..."
+mkdir -p dist/demo dist/play dist/sounds
+cp dist/index.html dist/demo/index.html
+cp dist/index.html dist/play/index.html
+cp dist/index.html dist/sounds/index.html
 
 # Create a script to run on the server
 echo "Creating server setup script..."
@@ -55,29 +40,31 @@ server {
     
     # Most restrictive rule first: assets
     location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
-        try_files $uri =404;
         expires 30d;
         add_header Cache-Control "public, max-age=2592000";
         access_log off;
     }
     
-    # Specific routes that need SPA handling
-    location ~ ^/(demo|play|sounds) {
-        try_files $uri $uri/ /index.html;
-        add_header Cache-Control "no-store, no-cache, must-revalidate";
+    # Force specific route handling
+    location = /demo {
+        alias /var/www/chesslink.site/demo;
+        try_files $uri $uri/ /demo/index.html;
+    }
+    
+    location = /play {
+        alias /var/www/chesslink.site/play;
+        try_files $uri $uri/ /play/index.html;
+    }
+    
+    location = /sounds {
+        alias /var/www/chesslink.site/sounds;
+        try_files $uri $uri/ /sounds/index.html;
     }
     
     # Default handling for all other routes
     location / {
         try_files $uri $uri/ /index.html;
         add_header Cache-Control "no-store, no-cache, must-revalidate";
-    }
-    
-    # Explicitly include 404 handling
-    error_page 404 /404.html;
-    location = /404.html {
-        root /var/www/chesslink.site;
-        internal;
     }
 }
 CONF
@@ -103,29 +90,31 @@ server {
     
     # Most restrictive rule first: assets
     location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
-        try_files $uri =404;
         expires 30d;
         add_header Cache-Control "public, max-age=2592000";
         access_log off;
     }
     
-    # Specific routes that need SPA handling
-    location ~ ^/(demo|play|sounds) {
-        try_files $uri $uri/ /index.html;
-        add_header Cache-Control "no-store, no-cache, must-revalidate";
+    # Force specific route handling
+    location = /demo {
+        alias /var/www/chesslink.site/demo;
+        try_files $uri $uri/ /demo/index.html;
+    }
+    
+    location = /play {
+        alias /var/www/chesslink.site/play;
+        try_files $uri $uri/ /play/index.html;
+    }
+    
+    location = /sounds {
+        alias /var/www/chesslink.site/sounds;
+        try_files $uri $uri/ /sounds/index.html;
     }
     
     # Default handling for all other routes
     location / {
         try_files $uri $uri/ /index.html;
         add_header Cache-Control "no-store, no-cache, must-revalidate";
-    }
-    
-    # Explicitly include 404 handling
-    error_page 404 /404.html;
-    location = /404.html {
-        root /var/www/chesslink.site;
-        internal;
     }
 }
 CONF
@@ -163,14 +152,44 @@ else
   exit 1
 fi
 
+# Create direct symlinks for problematic routes
+echo "Creating direct symlinks for problematic routes..."
+if [ ! -d "$WEB_ROOT/demo" ]; then
+  mkdir -p "$WEB_ROOT/demo"
+fi
+if [ ! -d "$WEB_ROOT/play" ]; then
+  mkdir -p "$WEB_ROOT/play"
+fi
+if [ ! -d "$WEB_ROOT/sounds" ]; then
+  mkdir -p "$WEB_ROOT/sounds"
+fi
+
+# Make sure index.html exists in each directory
+echo "Checking for index.html in each directory..."
+for dir in "$WEB_ROOT" "$WEB_ROOT/demo" "$WEB_ROOT/play" "$WEB_ROOT/sounds"; do
+  if [ ! -f "$dir/index.html" ]; then
+    echo "Creating index.html in $dir"
+    cp "$WEB_ROOT/index.html" "$dir/index.html"
+  fi
+done
+
 # Check for files in the web root
 echo "Checking web content..."
 ls -la "$WEB_ROOT"
-find "$WEB_ROOT" -type f | wc -l | xargs echo "Total files in web root:"
+echo "Checking special directories:"
+for dir in "demo" "play" "sounds"; do
+  echo "Directory: $dir"
+  ls -la "$WEB_ROOT/$dir"
+done
 
-# Fix common misconfigurations
-echo "Checking for common issues in Nginx configuration..."
-sed -i 's/deny all;//g' /etc/nginx/conf.d/* /etc/nginx/sites-enabled/* 2>/dev/null || true
+# Clean any NGINX cache
+echo "Clearing NGINX cache..."
+if [ -d "/var/cache/nginx" ]; then
+  rm -rf /var/cache/nginx/*
+fi
+
+# Turn off any gzip to avoid caching issues
+find /etc/nginx -name "*.conf" -exec sed -i 's/gzip on/gzip off/g' {} \; 2>/dev/null || true
 
 # Validate and restart Nginx
 echo "Testing and restarting Nginx..."
@@ -195,8 +214,14 @@ fi
 # Test the routes that were giving 404s
 echo "Testing routes with curl..."
 for route in "/" "/demo" "/play" "/sounds"; do
+  echo "Testing route: $route"
   STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost$route)
-  echo "Route $route returned status: $STATUS"
+  echo "  Status: $STATUS"
+  
+  # Also check headers
+  echo "  Headers:"
+  curl -s -I http://localhost$route | head -5
+  
   if [ "$STATUS" == "404" ]; then
     echo "WARNING: Route $route is still returning 404!"
   fi
@@ -228,6 +253,11 @@ ssh -p 22 root@107.175.111.165 "bash ~/server-setup.sh"
 rm server-setup.sh
 
 echo "Deployment complete! Your site should now be live at https://chesslink.site"
+echo "Try accessing these URLs directly:"
+echo "- https://chesslink.site/demo"
+echo "- https://chesslink.site/play"
+echo "- https://chesslink.site/sounds"
+echo ""
 echo "If you're still seeing errors, please try the following:"
 echo "1. Clear your browser cache completely or use private/incognito mode"
 echo "2. Try accessing the site from a different browser or device"
