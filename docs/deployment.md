@@ -6,7 +6,7 @@ This guide explains how to deploy the ChessLink frontend application to the prod
 
 *   Node.js and npm installed locally.
 *   SSH access to the production server (IP: `107.175.111.165`).
-*   The root password for the server.
+*   The appropriate credentials (password or SSH key) for the server.
 *   The `deploy.sh` script present in the project root.
 
 ## Deployment Process
@@ -38,7 +38,7 @@ The deployment process is automated using the `deploy.sh` script. This script ha
     ```bash
     ./deploy.sh
     ```
-3.  **Enter Password:** The script will prompt you multiple times for the server's root password (`PS2jghwr626Wl39JJU`). Enter it each time it asks.
+3.  **Enter Credentials:** The script will prompt you multiple times for the server's password (if using password authentication). Enter it each time it asks. **Using SSH keys is strongly recommended for better security and convenience.**
 4.  **Verify:** Once the script finishes, it will output "Deployment complete!".
     *   Open your web browser and navigate to `https://chesslink.site`.
     *   Test the main page and specifically navigate directly to `/demo`, `/play`, and `/sounds` to ensure they load correctly.
@@ -47,5 +47,5 @@ The deployment process is automated using the `deploy.sh` script. This script ha
 ## Troubleshooting
 
 *   **Permission Errors during SCP/SSH:** Ensure you are running the script from a user account that has SSH access configured or that your SSH agent is running.
-*   **Nginx Errors:** If the script reports `ERROR: Nginx configuration test failed!`, there might be a syntax error in the generated Nginx config or a conflict with other server configurations. You may need to SSH into the server (`ssh root@107.175.111.165`) and manually check the Nginx error logs (usually in `/var/log/nginx/error.log`).
+*   **Nginx Errors:** If the script reports `ERROR: Nginx configuration test failed!`, there might be a syntax error in the generated Nginx config or a conflict with other server configurations. You may need to SSH into the server (`ssh <your_username>@107.175.111.165`) and manually check the Nginx error logs (usually in `/var/log/nginx/error.log`).
 *   **Site Not Updating:** Clear your browser cache thoroughly. Check the output of the `curl` tests in the script's final output to see if the server itself is returning the correct status codes. 
