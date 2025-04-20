@@ -16,7 +16,7 @@ const Hero: React.FC = () => {
           <div className="max-w-2xl lg:max-w-lg">
             <div className={`transition-all duration-700 delay-75 transform ${isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
               <span className="inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-sm font-medium text-blue-700 ring-1 ring-inset ring-blue-700/20 mb-6">
-                Coming Soon
+                More Coming Soon
               </span>
             </div>
             
