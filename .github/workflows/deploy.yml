@@ -1,4 +1,4 @@
-name: Deploy to Server
+name: Deploy Frontend to Server
 
 on:
   push:
@@ -11,18 +11,53 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: SSH into server and run commands
-        uses: appleboy/ssh-action@v1.0.0
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build Site
+        run: npm run build
+
+      - name: Create Static Route Fallbacks
+        run: |
+          mkdir -p dist/demo dist/play dist/sounds
+          cp dist/index.html dist/demo/index.html
+          cp dist/index.html dist/play/index.html
+          cp dist/index.html dist/sounds/index.html
+
+      - name: Upload Files via SCP
+        uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.KEY }}
-          port: ${{ secrets.PORT || '22' }}
+          port: ${{ secrets.PORT || 22 }}
+          source: "dist/*"
+          target: "/var/www/chesslink.site/"
+          strip_components: 1
+
+      - name: Run Server Commands (Permissions & Restart Nginx)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.KEY }}
+          port: ${{ secrets.PORT || 22 }}
           script: |
-            cd /root/website
-            git pull origin main
-            npm install
-            npm run build
-            pm2 restart all
+            echo "Setting ownership and permissions on /var/www/chesslink.site..."
+            NGINX_USER=$(ps aux | grep "nginx: worker" | grep -v "grep" | awk '{print $1}' | head -1 || echo "nginx")
+            sudo chown -R "$NGINX_USER":"$NGINX_USER" /var/www/chesslink.site
+            sudo find /var/www/chesslink.site -type d -exec chmod 755 {} \;
+            sudo find /var/www/chesslink.site -type f -exec chmod 644 {} \;
+            echo "Testing Nginx configuration..."
+            sudo nginx -t
+            echo "Restarting Nginx..."
+            sudo systemctl restart nginx || sudo service nginx restart || sudo /etc/init.d/nginx restart
+            echo "Deployment commands finished."
