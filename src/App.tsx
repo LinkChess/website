@@ -8,6 +8,7 @@ import NotFound from "./pages/NotFound";
 import DemoPage from "./pages/Demo";
 import PlayPage from "./pages/Play";
 import SoundSettingsPage from "./pages/SoundSettings";
+import Connect from "./pages/Connect";
 
 const queryClient = new QueryClient();
 
@@ -22,6 +23,7 @@ const App = () => (
           <Route path="/demo" element={<DemoPage />} />
           <Route path="/play" element={<PlayPage />} />
           <Route path="/sounds" element={<SoundSettingsPage />} />
+          <Route path="/connect" element={<Connect />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
