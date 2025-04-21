@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Cpu, LucideMonitor, Info, Cable } from 'lucide-react';
 import { useAnimatedRef } from '@/lib/animations';
@@ -18,7 +17,7 @@ const Overview: React.FC = () => {
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-400/10 to-purple-400/5 z-0"></div>
                 <div className="relative z-10">
                   <img 
-                    src="https://images.unsplash.com/photo-1614555329467-84123ed7a64a?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2532&q=80" 
+                    src="/img/chesslink-hardware.svg" 
                     alt="ChessLink Hardware" 
                     className="w-full h-auto rounded-xl shadow-soft"
                   />
@@ -79,7 +78,7 @@ const Overview: React.FC = () => {
                 <div className="absolute inset-0 bg-gradient-to-tr from-purple-400/10 to-blue-400/5 z-0"></div>
                 <div className="relative z-10">
                   <img 
-                    src="https://images.unsplash.com/photo-1633567228633-9de8097361c6?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2532&q=80" 
+                    src="/img/chesslink-software.svg" 
                     alt="ChessLink Software" 
                     className="w-full h-auto rounded-xl shadow-soft"
                   />

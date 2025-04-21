@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="800px" height="600px" viewBox="0 0 800 600" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>ChessLink Hardware</title>
+    <defs>
+        <linearGradient x1="0%" y1="0%" x2="100%" y2="100%" id="boardGradient">
+            <stop stop-color="#E9C49F" offset="0%"></stop>
+            <stop stop-color="#C19A6B" offset="100%"></stop>
+        </linearGradient>
+        <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+            <feDropShadow dx="0" dy="4" stdDeviation="10" flood-color="#000000" flood-opacity="0.2"/>
+        </filter>
+    </defs>
+    <g id="ChessboardWithElectronics" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <!-- Background -->
+        <rect id="Background" fill="#F5F5F5" x="0" y="0" width="800" height="600"></rect>
+        
+        <!-- Chessboard with electronics -->
+        <g id="ChessboardAssembly" transform="translate(150, 100)" filter="url(#shadow)">
+            <!-- Board base -->
+            <rect id="BoardBase" fill="url(#boardGradient)" x="0" y="0" width="500" height="400" rx="5"></rect>
+            
+            <!-- Chess squares - 8x8 grid -->
+            <g id="ChessSquares">
+                <!-- Generate an 8x8 grid of squares -->
+                <g id="Row1">
+                    <rect fill="#F0D9B5" x="50" y="50" width="50" height="50"></rect>
+                    <rect fill="#B58863" x="100" y="50" width="50" height="50"></rect>
+                    <rect fill="#F0D9B5" x="150" y="50" width="50" height="50"></rect>
+                    <rect fill="#B58863" x="200" y="50" width="50" height="50"></rect>
+                    <rect fill="#F0D9B5" x="250" y="50" width="50" height="50"></rect>
+                    <rect fill="#B58863" x="300" y="50" width="50" height="50"></rect>
+                    <rect fill="#F0D9B5" x="350" y="50" width="50" height="50"></rect>
+                    <rect fill="#B58863" x="400" y="50" width="50" height="50"></rect>
+                </g>
+                <g id="Row2">
+                    <rect fill="#B58863" x="50" y="100" width="50" height="50"></rect>
+                    <rect fill="#F0D9B5" x="100" y="100" width="50" height="50"></rect>
+                    <rect fill="#B58863" x="150" y="100" width="50" height="50"></rect>
+                    <rect fill="#F0D9B5" x="200" y="100" width="50" height="50"></rect>
+                    <rect fill="#B58863" x="250" y="100" width="50" height="50"></rect>
+                    <rect fill="#F0D9B5" x="300" y="100" width="50" height="50"></rect>
+                    <rect fill="#B58863" x="350" y="100" width="50" height="50"></rect>
+                    <rect fill="#F0D9B5" x="400" y="100" width="50" height="50"></rect>
+                </g>
+                <g id="Row3">
+                    <rect fill="#F0D9B5" x="50" y="150" width="50" height="50"></rect>
+                    <rect fill="#B58863" x="100" y="150" width="50" height="50"></rect>
+                    <rect fill="#F0D9B5" x="150" y="150" width="50" height="50"></rect>
+                    <rect fill="#B58863" x="200" y="150" width="50" height="50"></rect>
+                    <rect fill="#F0D9B5" x="250" y="150" width="50" height="50"></rect>
+                    <rect fill="#B58863" x="300" y="150" width="50" height="50"></rect>
+                    <rect fill="#F0D9B5" x="350" y="150" width="50" height="50"></rect>
+                    <rect fill="#B58863" x="400" y="150" width="50" height="50"></rect>
+                </g>
+                <g id="Row4">
+                    <rect fill="#B58863" x="50" y="200" width="50" height="50"></rect>
+                    <rect fill="#F0D9B5" x="100" y="200" width="50" height="50"></rect>
+                    <rect fill="#B58863" x="150" y="200" width="50" height="50"></rect>
+                    <rect fill="#F0D9B5" x="200" y="200" width="50" height="50"></rect>
+                    <rect fill="#B58863" x="250" y="200" width="50" height="50"></rect>
+                    <rect fill="#F0D9B5" x="300" y="200" width="50" height="50"></rect>
+                    <rect fill="#B58863" x="350" y="200" width="50" height="50"></rect>
+                    <rect fill="#F0D9B5" x="400" y="200" width="50" height="50"></rect>
+                </g>
+                <g id="Row5">
+                    <rect fill="#F0D9B5" x="50" y="250" width="50" height="50"></rect>
+                    <rect fill="#B58863" x="100" y="250" width="50" height="50"></rect>
+                    <rect fill="#F0D9B5" x="150" y="250" width="50" height="50"></rect>
+                    <rect fill="#B58863" x="200" y="250" width="50" height="50"></rect>
+                    <rect fill="#F0D9B5" x="250" y="250" width="50" height="50"></rect>
+                    <rect fill="#B58863" x="300" y="250" width="50" height="50"></rect>
+                    <rect fill="#F0D9B5" x="350" y="250" width="50" height="50"></rect>
+                    <rect fill="#B58863" x="400" y="250" width="50" height="50"></rect>
+                </g>
+            </g>
+            
+            <!-- Electronics visible at the bottom of the board -->
+            <g id="Electronics" transform="translate(50, 320)">
+                <!-- Circuit board -->
+                <rect id="PCB" fill="#1E6E5F" x="0" y="0" width="400" height="60" rx="3"></rect>
+                
+                <!-- LED Matrix (visible at some squares) -->
+                <circle fill="#FFD700" cx="75" cy="25" r="4" opacity="0.8"></circle>
+                <circle fill="#FF0000" cx="125" cy="25" r="4" opacity="0.8"></circle>
+                <circle fill="#00FF00" cx="225" cy="25" r="4" opacity="0.8"></circle>
+                <circle fill="#0000FF" cx="325" cy="25" r="4" opacity="0.8"></circle>
+                
+                <!-- Microcontroller -->
+                <rect id="ESP32" fill="#000000" x="175" y="15" width="50" height="30" rx="2"></rect>
+                <circle fill="#FF0000" cx="185" cy="25" r="2"></circle> <!-- Power LED -->
+                
+                <!-- Connection Cable -->
+                <rect id="USB-Cable" fill="#696969" x="195" y="45" width="10" height="25"></rect>
+                
+                <!-- Small components -->
+                <g id="Components">
+                    <rect fill="#C0C0C0" x="25" y="20" width="10" height="5"></rect>
+                    <rect fill="#C0C0C0" x="25" y="35" width="10" height="5"></rect>
+                    <rect fill="#C0C0C0" x="365" y="20" width="10" height="5"></rect>
+                    <rect fill="#C0C0C0" x="365" y="35" width="10" height="5"></rect>
+                    
+                    <!-- Capacitors -->
+                    <circle fill="#0047AB" cx="275" cy="15" r="5"></circle>
+                    <circle fill="#0047AB" cx="275" cy="35" r="5"></circle>
+                    <circle fill="#0047AB" cx="295" cy="15" r="5"></circle>
+                    <circle fill="#0047AB" cx="295" cy="35" r="5"></circle>
+                    
+                    <!-- Hall Effect Sensors (Visible connection points) -->
+                    <g id="Sensors" transform="translate(110, 15)">
+                        <rect fill="#AAAAAA" x="0" y="0" width="2" height="2"></rect>
+                        <rect fill="#AAAAAA" x="5" y="0" width="2" height="2"></rect>
+                        <rect fill="#AAAAAA" x="10" y="0" width="2" height="2"></rect>
+                        <rect fill="#AAAAAA" x="15" y="0" width="2" height="2"></rect>
+                        <rect fill="#AAAAAA" x="20" y="0" width="2" height="2"></rect>
+                        <rect fill="#AAAAAA" x="25" y="0" width="2" height="2"></rect>
+                        <rect fill="#AAAAAA" x="30" y="0" width="2" height="2"></rect>
+                        <rect fill="#AAAAAA" x="35" y="0" width="2" height="2"></rect>
+                    </g>
+                </g>
+            </g>
+            
+            <!-- Chess pieces (simplified) -->
+            <g id="ChessPieces">
+                <!-- Pawns -->
+                <circle fill="#222222" cx="75" cy="150" r="15"></circle>
+                <circle fill="#222222" cx="125" cy="150" r="15"></circle>
+                <circle fill="#FFFFFF" cx="75" cy="250" r="15"></circle>
+                <circle fill="#FFFFFF" cx="125" cy="250" r="15"></circle>
+                
+                <!-- Rook -->
+                <rect fill="#222222" x="42.5" y="67.5" width="15" height="15"></rect>
+                <rect fill="#FFFFFF" x="42.5" y="317.5" width="15" height="15"></rect>
+                
+                <!-- Knight -->
+                <path d="M100,75 L110,65 L115,80 L100,85 Z" fill="#222222"></path>
+                <path d="M100,325 L110,315 L115,330 L100,335 Z" fill="#FFFFFF"></path>
+                
+                <!-- King & Queen -->
+                <circle fill="#222222" cx="225" cy="75" r="18"></circle>
+                <circle fill="#FFFFFF" cx="225" cy="325" r="18"></circle>
+                <circle fill="#222222" cx="275" cy="75" r="18"></circle>
+                <circle fill="#FFFFFF" cx="275" cy="325" r="18"></circle>
+                
+                <!-- Active LED highlighting a square (move suggestion) -->
+                <rect fill="#00FF00" x="250" y="250" width="50" height="50" opacity="0.3"></rect>
+            </g>
+        </g>
+    </g>
+</svg> 

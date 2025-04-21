@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="800px" height="600px" viewBox="0 0 800 600" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>ChessLink Software</title>
+    <defs>
+        <linearGradient x1="0%" y1="0%" x2="100%" y2="100%" id="screenGradient">
+            <stop stop-color="#FFFFFF" offset="0%"></stop>
+            <stop stop-color="#F8F9FA" offset="100%"></stop>
+        </linearGradient>
+        <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+            <feDropShadow dx="0" dy="4" stdDeviation="10" flood-color="#000000" flood-opacity="0.2"/>
+        </filter>
+    </defs>
+    <g id="ChessApplicationInterface" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <!-- Background -->
+        <rect id="Background" fill="#FAFAFA" x="0" y="0" width="800" height="600"></rect>
+        
+        <!-- Application Browser Window -->
+        <g id="BrowserWindow" transform="translate(100, 50)" filter="url(#shadow)">
+            <!-- Browser Frame -->
+            <rect id="Frame" fill="#FFFFFF" x="0" y="0" width="600" height="500" rx="8"></rect>
+            
+            <!-- Browser Toolbar -->
+            <rect id="Toolbar" fill="#F2F2F2" x="0" y="0" width="600" height="40" rx="8 8 0 0"></rect>
+            <circle id="RedButton" fill="#FF5F57" cx="20" cy="20" r="6"></circle>
+            <circle id="YellowButton" fill="#FEBC2E" cx="40" cy="20" r="6"></circle>
+            <circle id="GreenButton" fill="#28C840" cx="60" cy="20" r="6"></circle>
+            
+            <!-- URL Bar -->
+            <rect id="URLBar" fill="#FFFFFF" x="120" y="10" width="400" height="20" rx="4"></rect>
+            <text x="140" y="24" font-family="Arial" font-size="10" fill="#8A8A8A">https://chesslink.app/play</text>
+            
+            <!-- App Content Area -->
+            <rect id="ContentArea" fill="url(#screenGradient)" x="0" y="40" width="600" height="460"></rect>
+            
+            <!-- App Header -->
+            <rect id="AppHeader" fill="#1A1A1A" x="0" y="40" width="600" height="60"></rect>
+            <text x="20" y="80" font-family="Arial" font-weight="bold" font-size="20" fill="#FFFFFF">ChessLink</text>
+            
+            <!-- Navigation Menu -->
+            <rect id="NavMenu" fill="#F8F9FA" x="450" y="55" width="130" height="30" rx="4"></rect>
+            <text x="465" y="75" font-family="Arial" font-size="12" fill="#333333">Play</text>
+            <text x="495" y="75" font-family="Arial" font-size="12" fill="#333333">Analyze</text>
+            <text x="545" y="75" font-family="Arial" font-size="12" fill="#333333">Settings</text>
+            
+            <!-- Main Content - Chess Board and UI -->
+            <g id="MainContent" transform="translate(20, 120)">
+                <!-- Chess Board Representation -->
+                <g id="ChessBoard">
+                    <!-- Board background -->
+                    <rect id="BoardBg" fill="#E9ECEF" x="0" y="0" width="320" height="320" rx="4"></rect>
+                    
+                    <!-- Board squares -->
+                    <g id="BoardSquares">
+                        <!-- Row 1 -->
+                        <rect fill="#FFFFFF" x="0" y="0" width="40" height="40"></rect>
+                        <rect fill="#8CA2AD" x="40" y="0" width="40" height="40"></rect>
+                        <rect fill="#FFFFFF" x="80" y="0" width="40" height="40"></rect>
+                        <rect fill="#8CA2AD" x="120" y="0" width="40" height="40"></rect>
+                        <rect fill="#FFFFFF" x="160" y="0" width="40" height="40"></rect>
+                        <rect fill="#8CA2AD" x="200" y="0" width="40" height="40"></rect>
+                        <rect fill="#FFFFFF" x="240" y="0" width="40" height="40"></rect>
+                        <rect fill="#8CA2AD" x="280" y="0" width="40" height="40"></rect>
+                        
+                        <!-- Row 2 -->
+                        <rect fill="#8CA2AD" x="0" y="40" width="40" height="40"></rect>
+                        <rect fill="#FFFFFF" x="40" y="40" width="40" height="40"></rect>
+                        <rect fill="#8CA2AD" x="80" y="40" width="40" height="40"></rect>
+                        <rect fill="#FFFFFF" x="120" y="40" width="40" height="40"></rect>
+                        <rect fill="#8CA2AD" x="160" y="40" width="40" height="40"></rect>
+                        <rect fill="#FFFFFF" x="200" y="40" width="40" height="40"></rect>
+                        <rect fill="#8CA2AD" x="240" y="40" width="40" height="40"></rect>
+                        <rect fill="#FFFFFF" x="280" y="40" width="40" height="40"></rect>
+                        
+                        <!-- Row 3 -->
+                        <rect fill="#FFFFFF" x="0" y="80" width="40" height="40"></rect>
+                        <rect fill="#8CA2AD" x="40" y="80" width="40" height="40"></rect>
+                        <rect fill="#FFFFFF" x="80" y="80" width="40" height="40"></rect>
+                        <rect fill="#8CA2AD" x="120" y="80" width="40" height="40"></rect>
+                        <rect fill="#FFFFFF" x="160" y="80" width="40" height="40"></rect>
+                        <rect fill="#8CA2AD" x="200" y="80" width="40" height="40"></rect>
+                        <rect fill="#FFFFFF" x="240" y="80" width="40" height="40"></rect>
+                        <rect fill="#8CA2AD" x="280" y="80" width="40" height="40"></rect>
+                        
+                        <!-- Row 4 -->
+                        <rect fill="#8CA2AD" x="0" y="120" width="40" height="40"></rect>
+                        <rect fill="#FFFFFF" x="40" y="120" width="40" height="40"></rect>
+                        <rect fill="#8CA2AD" x="80" y="120" width="40" height="40"></rect>
+                        <rect fill="#FFFFFF" x="120" y="120" width="40" height="40"></rect>
+                        <rect fill="#8CA2AD" x="160" y="120" width="40" height="40"></rect>
+                        <rect fill="#FFFFFF" x="200" y="120" width="40" height="40"></rect>
+                        <rect fill="#8CA2AD" x="240" y="120" width="40" height="40"></rect>
+                        <rect fill="#FFFFFF" x="280" y="120" width="40" height="40"></rect>
+                        
+                        <!-- Row 5 and onward would continue in the same pattern -->
+                        <!-- Adding just a few more rows -->
+                        <rect fill="#FFFFFF" x="0" y="160" width="40" height="40"></rect>
+                        <rect fill="#8CA2AD" x="40" y="160" width="40" height="40"></rect>
+                        <rect fill="#FFFFFF" x="80" y="160" width="40" height="40"></rect>
+                        <rect fill="#8CA2AD" x="120" y="160" width="40" height="40"></rect>
+                        <rect fill="#FFFFFF" x="160" y="160" width="40" height="40"></rect>
+                        <rect fill="#8CA2AD" x="200" y="160" width="40" height="40"></rect>
+                        <rect fill="#FFFFFF" x="240" y="160" width="40" height="40"></rect>
+                        <rect fill="#8CA2AD" x="280" y="160" width="40" height="40"></rect>
+                        
+                        <rect fill="#8CA2AD" x="0" y="200" width="40" height="40"></rect>
+                        <rect fill="#FFFFFF" x="40" y="200" width="40" height="40"></rect>
+                        <rect fill="#8CA2AD" x="80" y="200" width="40" height="40"></rect>
+                        <rect fill="#FFFFFF" x="120" y="200" width="40" height="40"></rect>
+                        <rect fill="#8CA2AD" x="160" y="200" width="40" height="40"></rect>
+                        <rect fill="#FFFFFF" x="200" y="200" width="40" height="40"></rect>
+                        <rect fill="#8CA2AD" x="240" y="200" width="40" height="40"></rect>
+                        <rect fill="#FFFFFF" x="280" y="200" width="40" height="40"></rect>
+                        
+                        <rect fill="#FFFFFF" x="0" y="240" width="40" height="40"></rect>
+                        <rect fill="#8CA2AD" x="40" y="240" width="40" height="40"></rect>
+                        <rect fill="#FFFFFF" x="80" y="240" width="40" height="40"></rect>
+                        <rect fill="#8CA2AD" x="120" y="240" width="40" height="40"></rect>
+                        <rect fill="#FFFFFF" x="160" y="240" width="40" height="40"></rect>
+                        <rect fill="#8CA2AD" x="200" y="240" width="40" height="40"></rect>
+                        <rect fill="#FFFFFF" x="240" y="240" width="40" height="40"></rect>
+                        <rect fill="#8CA2AD" x="280" y="240" width="40" height="40"></rect>
+                        
+                        <rect fill="#8CA2AD" x="0" y="280" width="40" height="40"></rect>
+                        <rect fill="#FFFFFF" x="40" y="280" width="40" height="40"></rect>
+                        <rect fill="#8CA2AD" x="80" y="280" width="40" height="40"></rect>
+                        <rect fill="#FFFFFF" x="120" y="280" width="40" height="40"></rect>
+                        <rect fill="#8CA2AD" x="160" y="280" width="40" height="40"></rect>
+                        <rect fill="#FFFFFF" x="200" y="280" width="40" height="40"></rect>
+                        <rect fill="#8CA2AD" x="240" y="280" width="40" height="40"></rect>
+                        <rect fill="#FFFFFF" x="280" y="280" width="40" height="40"></rect>
+                    </g>
+                    
+                    <!-- Chess pieces - simplified representations -->
+                    <!-- Black Pieces -->
+                    <g id="BlackPieces" fill="#333333">
+                        <!-- Rooks -->
+                        <rect x="5" y="5" width="30" height="30" rx="2"></rect>
+                        <rect x="285" y="5" width="30" height="30" rx="2"></rect>
+                        
+                        <!-- Knights -->
+                        <path d="M45,10 L55,5 L75,15 L65,35 L45,30 Z" fill="#333333"></path>
+                        <path d="M245,10 L255,5 L275,15 L265,35 L245,30 Z" fill="#333333"></path>
+                        
+                        <!-- Bishops -->
+                        <circle cx="100" cy="20" r="15"></circle>
+                        <circle cx="220" cy="20" r="15"></circle>
+                        
+                        <!-- Queen -->
+                        <polygon points="160,5 155,35 165,35" fill="#333333"></polygon>
+                        <circle cx="160" cy="15" r="10"></circle>
+                        
+                        <!-- King -->
+                        <polygon points="200,5 195,35 205,35" fill="#333333"></polygon>
+                        <rect x="195" y="10" width="10" height="3"></rect>
+                        <rect x="198.5" y="5" width="3" height="13"></rect>
+                        
+                        <!-- Pawns -->
+                        <circle cx="20" cy="60" r="12"></circle>
+                        <circle cx="60" cy="60" r="12"></circle>
+                        <circle cx="100" cy="60" r="12"></circle>
+                        <circle cx="140" cy="60" r="12"></circle>
+                        <circle cx="180" cy="60" r="12"></circle>
+                        <circle cx="220" cy="60" r="12"></circle>
+                        <circle cx="260" cy="60" r="12"></circle>
+                        <circle cx="300" cy="60" r="12"></circle>
+                    </g>
+                    
+                    <!-- White Pieces -->
+                    <g id="WhitePieces" fill="#FFFFFF" stroke="#000000" stroke-width="1">
+                        <!-- Rooks -->
+                        <rect x="5" y="285" width="30" height="30" rx="2"></rect>
+                        <rect x="285" y="285" width="30" height="30" rx="2"></rect>
+                        
+                        <!-- Pawns -->
+                        <circle cx="20" cy="245" r="12"></circle>
+                        <circle cx="60" cy="245" r="12"></circle>
+                        <circle cx="100" cy="245" r="12"></circle>
+                        <circle cx="140" cy="245" r="12"></circle>
+                        <circle cx="180" cy="245" r="12"></circle>
+                        <circle cx="220" cy="245" r="12"></circle>
+                        <circle cx="260" cy="245" r="12"></circle>
+                        <circle cx="300" cy="245" r="12"></circle>
+                        
+                        <!-- Active piece with highlight -->
+                        <circle cx="100" cy="120" r="15" fill="#FFFFFF" stroke="#4CAF50" stroke-width="3"></circle>
+                        <!-- Move indicators -->
+                        <circle cx="100" cy="160" r="8" fill="#4CAF50" opacity="0.5"></circle>
+                        <circle cx="100" cy="200" r="8" fill="#4CAF50" opacity="0.5"></circle>
+                    </g>
+                </g>
+                
+                <!-- Game Info Panel -->
+                <g id="GameInfoPanel" transform="translate(340, 0)">
+                    <!-- Panel Background -->
+                    <rect id="InfoPanelBg" fill="#FFFFFF" x="0" y="0" width="220" height="320" rx="4"></rect>
+                    
+                    <!-- Game Info Header -->
+                    <rect id="InfoHeader" fill="#F2F2F2" x="0" y="0" width="220" height="40" rx="4 4 0 0"></rect>
+                    <text x="20" y="25" font-family="Arial" font-weight="bold" font-size="14" fill="#333333">Game Information</text>
+                    
+                    <!-- Player Info -->
+                    <text x="20" y="60" font-family="Arial" font-weight="bold" font-size="12" fill="#333333">Player 1 (Black)</text>
+                    <text x="20" y="80" font-family="Arial" font-size="12" fill="#666666">ELO: 1850</text>
+                    
+                    <text x="20" y="110" font-family="Arial" font-weight="bold" font-size="12" fill="#333333">Player 2 (White)</text>
+                    <text x="20" y="130" font-family="Arial" font-size="12" fill="#666666">ELO: 1920</text>
+                    
+                    <!-- Move List Header -->
+                    <rect id="MoveListHeader" fill="#F2F2F2" x="0" y="150" width="220" height="30"></rect>
+                    <text x="20" y="170" font-family="Arial" font-weight="bold" font-size="12" fill="#333333">Move History</text>
+                    
+                    <!-- Move List - Simplified representation -->
+                    <g id="MoveList" transform="translate(0, 180)">
+                        <rect id="MoveListBg" fill="#FAFAFA" x="0" y="0" width="220" height="140"></rect>
+                        
+                        <!-- Sample moves -->
+                        <text x="20" y="20" font-family="Arial" font-size="12" fill="#333333">1. e4 e5</text>
+                        <text x="20" y="40" font-family="Arial" font-size="12" fill="#333333">2. Nf3 Nc6</text>
+                        <text x="20" y="60" font-family="Arial" font-size="12" fill="#333333">3. Bb5 a6</text>
+                        <text x="20" y="80" font-family="Arial" font-size="12" fill="#333333">4. Ba4 Nf6</text>
+                        <text x="20" y="100" font-family="Arial" font-size="12" fill="#333333">5. O-O Be7</text>
+                        <text x="20" y="120" font-family="Arial" font-size="12" fill="#333333">6. Re1 b5</text>
+                    </g>
+                </g>
+                
+                <!-- Connection Status -->
+                <g id="ConnectionStatus" transform="translate(0, 330)">
+                    <rect id="StatusBg" fill="#F8F9FA" x="0" y="0" width="560" height="40" rx="4"></rect>
+                    <circle id="StatusIndicator" fill="#4CAF50" cx="20" cy="20" r="6"></circle>
+                    <text x="35" y="25" font-family="Arial" font-size="12" fill="#333333">Connected to ChessLink Hardware</text>
+                    
+                    <!-- Control Buttons -->
+                    <rect id="NewGameBtn" fill="#007BFF" x="400" y="5" width="70" height="30" rx="4"></rect>
+                    <text x="415" y="25" font-family="Arial" font-size="12" fill="#FFFFFF">New Game</text>
+                    
+                    <rect id="AnalyzeBtn" fill="#6C757D" x="480" y="5" width="70" height="30" rx="4"></rect>
+                    <text x="495" y="25" font-family="Arial" font-size="12" fill="#FFFFFF">Analyze</text>
+                </g>
+            </g>
+        </g>
+    </g>
+</svg> 
