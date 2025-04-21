@@ -1,6 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Chessboard } from "react-chessboard";
+import { Chess } from "chess.js";
 import { 
   Card, 
   CardContent, 
@@ -9,18 +12,14 @@ import {
   CardTitle,
   CardFooter
 } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Chessboard } from "react-chessboard";
-import { Chess } from "chess.js";
-import { Badge } from "@/components/ui/badge";
 import { 
   ArrowDownToLine, 
-  Copy,
+  ExternalLink,
   PlayCircle, 
-  CircleOff,
-  Share2
+  CircleOff
 } from "lucide-react";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 const Connect = () => {
   const [game, setGame] = useState(new Chess());
@@ -28,90 +27,198 @@ const Connect = () => {
   const [isConnected, setIsConnected] = useState(false);
   const [isLiveGame, setIsLiveGame] = useState(false);
   const [lastMove, setLastMove] = useState("");
+  const [gameId, setGameId] = useState("");
   const [shareUrl, setShareUrl] = useState("");
+  const webSocketRef = useRef<WebSocket | null>(null);
+  const [dataFlow, setDataFlow] = useState<string[]>([]);
+  const [leds, setLeds] = useState({ whitePlayer: false, blackPlayer: false });
+  const navigate = useNavigate();
 
-  // Simulate connecting to hardware
-  const connectToHardware = () => {
-    // This would be replaced with actual hardware connection logic
-    toast.info("Attempting to connect to chess hardware...");
-    
-    // Simulate connection process
-    setTimeout(() => {
-      setIsConnected(true);
-      toast.success("Connected to chess hardware");
-    }, 1500);
+  // Initialize WebSocket connection
+  const connectWebSocket = () => {
+    if (webSocketRef.current && webSocketRef.current.readyState === WebSocket.OPEN) {
+      return; // Already connected
+    }
+
+    toast.info("Attempting to connect to ChessLink server...");
+    addLogEntry("Connecting to ChessLink server...");
+
+    try {
+      const ws = new WebSocket('ws://localhost:8765');
+      
+      ws.onopen = () => {
+        setIsConnected(true);
+        addLogEntry("✅ WebSocket connected");
+        toast.success("Connected to ChessLink server");
+        webSocketRef.current = ws;
+      };
+      
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          
+          if (data.type === "info") {
+            addLogEntry(`ℹ️ ${data.message}`);
+          } else if (data.type === "position") {
+            processPosition(data.fen);
+          } else if (data.type === "error") {
+            addLogEntry(`❌ Error: ${data.message}`);
+            toast.error(data.message);
+          }
+        } catch (error) {
+          console.error("Error parsing WebSocket message:", error);
+          addLogEntry(`❌ Error parsing message: ${error.message}`);
+        }
+      };
+      
+      ws.onerror = () => {
+        setIsConnected(false);
+        addLogEntry("❌ WebSocket connection error");
+        toast.error("Connection error. Is the ChessLink server running?");
+      };
+      
+      ws.onclose = () => {
+        setIsConnected(false);
+        if (isLiveGame) {
+          addLogEntry("❌ Lost connection to ChessLink server");
+          toast.error("Lost connection to ChessLink server");
+        } else {
+          addLogEntry("WebSocket connection closed");
+        }
+        webSocketRef.current = null;
+      };
+    } catch (error) {
+      addLogEntry(`❌ Failed to connect: ${error.message}`);
+      toast.error(`Failed to connect: ${error.message}`);
+    }
   };
 
-  // Simulate disconnecting from hardware
-  const disconnectFromHardware = () => {
-    setIsConnected(false);
-    setIsLiveGame(false);
-    toast.info("Disconnected from chess hardware");
-  };
-
-  // Simulate starting a live game
-  const startLiveGame = () => {
-    if (!isConnected) {
-      toast.error("Please connect to hardware first");
+  // Process a position update from WebSocket
+  const processPosition = (fen: string) => {
+    if (!fen || typeof fen !== 'string' || !fen.includes('/')) {
+      console.error("Invalid FEN received:", fen);
       return;
     }
 
-    setGame(new Chess()); // Reset the game
-    setIsLiveGame(true);
-    setPgn("");
-    toast.success("Live game started");
-
-    // Generate a shareable URL for spectators
-    const randomId = Math.random().toString(36).substring(2, 10);
-    setShareUrl(`https://chesslink.site/game/${randomId}`);
-  };
-
-  // Simulate receiving moves from hardware
-  useEffect(() => {
-    if (!isLiveGame) return;
-    
-    // This would be replaced with actual hardware event listener
-    const interval = setInterval(() => {
-      // Randomly decide whether to make a move (20% chance)
-      if (Math.random() < 0.2 && !game.isGameOver()) {
-        const possibleMoves = game.moves();
-        if (possibleMoves.length > 0) {
-          // Make a random legal move
-          const move = possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
-          
-          const newGame = new Chess(game.fen());
-          newGame.move(move);
-          
-          setLastMove(move);
-          setGame(newGame);
-          setPgn(newGame.pgn());
-          
-          // Update UI to show the move
-          toast.info(`Move played: ${move}`);
-        }
+    try {
+      // Create a new Chess instance with the FEN
+      const newGame = new Chess(fen);
+      
+      // Update game state
+      setGame(newGame);
+      setPgn(newGame.pgn());
+      
+      // Determine last move by comparing history
+      const history = newGame.history();
+      if (history.length > 0) {
+        setLastMove(history[history.length - 1]);
       }
-    }, 3000);
+      
+      // Check whose turn it is and update LEDs
+      const turnColor = fen.split(' ')[1];
+      setLeds({
+        whitePlayer: turnColor === 'w',
+        blackPlayer: turnColor === 'b'
+      });
+      
+      addLogEntry(`New position received: ${turnColor === 'w' ? 'White' : 'Black'} to move`);
+    } catch (error) {
+      console.error("Error processing position:", error);
+      addLogEntry(`❌ Error processing position: ${error.message}`);
+    }
+  };
+
+  // Start a live game
+  const startLiveGame = () => {
+    if (!isConnected) {
+      toast.error("Please connect to the ChessLink server first");
+      return;
+    }
+
+    // Reset game state
+    setGame(new Chess());
+    setPgn("");
+    setLastMove("");
+    setIsLiveGame(true);
     
-    return () => clearInterval(interval);
-  }, [game, isLiveGame]);
+    // Generate a random game ID
+    const newGameId = Math.random().toString(36).substring(2, 10);
+    setGameId(newGameId);
+    
+    // Create shareable URL
+    const url = `${window.location.origin}/game/${newGameId}`;
+    setShareUrl(url);
+    
+    addLogEntry(`Started new live game with ID: ${newGameId}`);
+    toast.success("Live game started!");
+    
+    // Send start game command to server if needed
+    if (webSocketRef.current && webSocketRef.current.readyState === WebSocket.OPEN) {
+      webSocketRef.current.send(JSON.stringify({
+        command: "start_game",
+        game_id: newGameId
+      }));
+    }
+  };
 
-  // Function to save PGN to demo
+  // Stop the live game
+  const stopLiveGame = () => {
+    setIsLiveGame(false);
+    addLogEntry("Live game stopped");
+    toast.info("Live game stopped");
+    
+    // Send stop game command to server if needed
+    if (webSocketRef.current && webSocketRef.current.readyState === WebSocket.OPEN) {
+      webSocketRef.current.send(JSON.stringify({
+        command: "stop_game",
+        game_id: gameId
+      }));
+    }
+  };
+
+  // Disconnect from WebSocket
+  const disconnect = () => {
+    if (webSocketRef.current) {
+      webSocketRef.current.close();
+      webSocketRef.current = null;
+    }
+    
+    setIsConnected(false);
+    setIsLiveGame(false);
+    addLogEntry("Disconnected from ChessLink server");
+    toast.info("Disconnected from ChessLink server");
+  };
+
+  // Save the current game to the demo library
   const saveToDemoLibrary = () => {
-    // This would typically save to a database or local storage
-    toast.success("Game saved to demo library");
-    // Simulate redirection to demo page
-    setTimeout(() => {
-      window.location.href = "/demo";
-    }, 1500);
+    // Save the PGN to localStorage
+    if (pgn) {
+      localStorage.setItem("savedPgn", pgn);
+      addLogEntry("Game saved to demo library");
+      toast.success("Game saved to demo library!");
+      
+      // Redirect to demo page
+      navigate("/demo");
+    } else {
+      toast.error("No game data to save");
+    }
   };
 
-  // Copy shareable URL
-  const copyShareUrl = () => {
-    navigator.clipboard.writeText(shareUrl);
-    toast.success("Shareable URL copied to clipboard");
+  // Add log entry to data flow
+  const addLogEntry = (entry: string) => {
+    setDataFlow(prev => [entry, ...prev].slice(0, 10));
   };
 
-  // Get game status display
+  // Cleanup WebSocket on unmount
+  useEffect(() => {
+    return () => {
+      if (webSocketRef.current) {
+        webSocketRef.current.close();
+      }
+    };
+  }, []);
+
+  // Get game status text
   const getGameStatus = () => {
     if (game.isCheckmate()) return "Checkmate";
     if (game.isDraw()) return "Draw";
@@ -119,63 +226,75 @@ const Connect = () => {
     if (game.isThreefoldRepetition()) return "Draw by repetition";
     if (game.isInsufficientMaterial()) return "Draw by insufficient material";
     if (game.isCheck()) return "Check";
-    return game.turn() === "w" ? "White to move" : "Black to move";
+    return game.turn() === "w" ? "White's turn" : "Black's turn";
+  };
+
+  // Open the game in a new tab for viewing
+  const openGameView = () => {
+    window.open(shareUrl, '_blank');
   };
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold text-center mb-8">Live Chess Connection</h1>
+      <h1 className="text-3xl font-bold text-center mb-8">ChessLink Live Game Connection</h1>
       
       <div className="grid md:grid-cols-2 gap-6">
-        {/* Left Column - Chessboard and Controls */}
+        {/* Left Column - Chessboard */}
         <div>
           <Card>
             <CardHeader>
               <div className="flex justify-between items-center">
                 <CardTitle>Live Game Board</CardTitle>
                 <div className="flex gap-2">
-                  {isConnected ? (
-                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                      Connected
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-                      Disconnected
-                    </Badge>
-                  )}
+                  <Badge variant="outline" className={isConnected ? "bg-green-50 text-green-700 border-green-200" : "bg-red-50 text-red-700 border-red-200"}>
+                    {isConnected ? "Connected" : "Disconnected"}
+                  </Badge>
                   {isLiveGame && (
-                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                    <Badge variant="default" className="bg-blue-600">
                       Live
                     </Badge>
                   )}
                 </div>
               </div>
               <CardDescription>
-                {isLiveGame ? `Game Status: ${getGameStatus()}` : "Connect your chess hardware to start a live game"}
+                {isLiveGame ? `Game Status: ${getGameStatus()}` : "Connect to ChessLink server to start a live game"}
               </CardDescription>
             </CardHeader>
             
-            <CardContent>
-              <div className="aspect-square max-w-md mx-auto mb-4">
-                <Chessboard position={game.fen()} />
+            <CardContent className="space-y-6">
+              <div className="aspect-square max-w-md mx-auto">
+                <Chessboard 
+                  position={game.fen()} 
+                  boardWidth={350}
+                  areArrowsAllowed={false}
+                />
               </div>
               
-              {isLiveGame && lastMove && (
-                <div className="text-center mb-4">
-                  <Badge variant="secondary" className="text-lg px-3 py-1">
-                    Last Move: {lastMove}
-                  </Badge>
+              {/* Player indicators */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex items-center gap-2">
+                  <div className={`w-3 h-3 rounded-full ${leds.whitePlayer ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`}></div>
+                  <span className={`${leds.whitePlayer ? 'font-medium' : ''}`}>
+                    White Player {leds.whitePlayer ? '(Active)' : ''}
+                  </span>
                 </div>
-              )}
+                <div className="flex items-center gap-2">
+                  <div className={`w-3 h-3 rounded-full ${leds.blackPlayer ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`}></div>
+                  <span className={`${leds.blackPlayer ? 'font-medium' : ''}`}>
+                    Black Player {leds.blackPlayer ? '(Active)' : ''}
+                  </span>
+                </div>
+              </div>
               
-              <div className="flex flex-wrap gap-2 justify-center mt-4">
+              {/* Connection controls */}
+              <div className="flex flex-wrap gap-2 justify-center">
                 {!isConnected ? (
-                  <Button onClick={connectToHardware}>
-                    Connect to Hardware
+                  <Button onClick={connectWebSocket}>
+                    Connect to ChessLink
                   </Button>
                 ) : (
                   <>
-                    <Button onClick={disconnectFromHardware} variant="outline">
+                    <Button onClick={disconnect} variant="outline">
                       <CircleOff className="mr-2 h-4 w-4" />
                       Disconnect
                     </Button>
@@ -186,96 +305,111 @@ const Connect = () => {
                         Start Live Game
                       </Button>
                     ) : (
-                      <Button onClick={saveToDemoLibrary} variant="secondary">
-                        <ArrowDownToLine className="mr-2 h-4 w-4" />
-                        Save to Demo
-                      </Button>
+                      <>
+                        <Button onClick={stopLiveGame} variant="outline">
+                          Stop Game
+                        </Button>
+                        <Button onClick={saveToDemoLibrary} variant="secondary">
+                          <ArrowDownToLine className="mr-2 h-4 w-4" />
+                          Save to Demo
+                        </Button>
+                      </>
                     )}
                   </>
                 )}
               </div>
+              
+              {/* Live game share options */}
+              {isLiveGame && shareUrl && (
+                <div className="mt-4 p-4 border rounded-md bg-gray-50">
+                  <h3 className="font-medium mb-2">Share this live game:</h3>
+                  <div className="flex items-center gap-2">
+                    <input 
+                      type="text" 
+                      value={shareUrl} 
+                      readOnly 
+                      className="flex-1 p-2 text-sm bg-white border rounded-md" 
+                    />
+                    <Button size="sm" onClick={() => {
+                      navigator.clipboard.writeText(shareUrl);
+                      toast.success("Link copied to clipboard!");
+                    }}>
+                      Copy
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={openGameView}>
+                      <ExternalLink className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <p className="text-sm text-gray-500 mt-2">
+                    Anyone with this link can watch your game in real-time
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
         
-        {/* Right Column - Game Data and Sharing */}
-        <div>
-          <Tabs defaultValue="pgn">
-            <TabsList className="w-full">
-              <TabsTrigger value="pgn" className="flex-1">PGN</TabsTrigger>
-              <TabsTrigger value="share" className="flex-1">Share</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="pgn">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Game PGN</CardTitle>
-                  <CardDescription>
-                    The live game's PGN notation is updated in real-time
-                  </CardDescription>
-                </CardHeader>
-                
-                <CardContent>
-                  <Textarea
-                    value={pgn}
-                    onChange={(e) => setPgn(e.target.value)}
-                    placeholder="PGN will appear here when a live game is in progress..."
-                    className="min-h-[200px] font-mono text-sm"
-                    readOnly={isLiveGame}
-                  />
-                </CardContent>
-                
-                <CardFooter>
-                  <Button 
-                    onClick={() => {
-                      navigator.clipboard.writeText(pgn);
-                      toast.success("PGN copied to clipboard");
-                    }}
-                    variant="outline"
-                    className="w-full"
-                    disabled={!pgn}
-                  >
-                    <Copy className="mr-2 h-4 w-4" />
-                    Copy PGN
-                  </Button>
-                </CardFooter>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="share">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Share Live Game</CardTitle>
-                  <CardDescription>
-                    Share this link with others to let them watch the game live
-                  </CardDescription>
-                </CardHeader>
-                
-                <CardContent>
-                  {shareUrl ? (
-                    <div className="p-3 bg-muted rounded-md font-mono text-sm break-all">
-                      {shareUrl}
+        {/* Right Column - Data and Log */}
+        <div className="space-y-6">
+          {/* PGN Data Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Game PGN</CardTitle>
+              <CardDescription>
+                The live game's PGN notation is updated in real-time
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Textarea
+                value={pgn}
+                onChange={(e) => setPgn(e.target.value)}
+                placeholder="PGN will appear here when a live game is in progress..."
+                className="min-h-[150px] font-mono text-sm"
+                readOnly={isLiveGame}
+              />
+            </CardContent>
+            <CardFooter>
+              <Button 
+                onClick={() => {
+                  navigator.clipboard.writeText(pgn);
+                  toast.success("PGN copied to clipboard");
+                }}
+                variant="outline"
+                className="w-full"
+                disabled={!pgn}
+              >
+                Copy PGN
+              </Button>
+            </CardFooter>
+          </Card>
+          
+          {/* Data Flow Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Connection Log</CardTitle>
+              <CardDescription>
+                Real-time data flow from the ChessLink hardware
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="border rounded-md p-3 bg-black text-green-400 font-mono h-[220px] overflow-y-auto space-y-2">
+                {dataFlow.length > 0 ? (
+                  dataFlow.map((entry, i) => (
+                    <div key={i} className="flex">
+                      <span className="opacity-60 mr-2">[{new Date().toLocaleTimeString()}]</span>
+                      <span>{entry}</span>
                     </div>
-                  ) : (
-                    <div className="p-3 bg-muted rounded-md text-muted-foreground">
-                      Start a live game to generate a shareable link
-                    </div>
-                  )}
-                </CardContent>
-                
-                <CardFooter className="flex flex-col gap-3">
-                  <Button 
-                    onClick={copyShareUrl}
-                    className="w-full"
-                    disabled={!shareUrl}
-                  >
-                    <Share2 className="mr-2 h-4 w-4" />
-                    Copy Shareable Link
-                  </Button>
-                </CardFooter>
-              </Card>
-            </TabsContent>
-          </Tabs>
+                  ))
+                ) : (
+                  <div className="text-center opacity-60 h-full flex items-center justify-center">
+                    {isConnected 
+                      ? "Connected and waiting for activity..." 
+                      : "Connect to see data flow"}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
