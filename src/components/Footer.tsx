@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Github, Twitter, Facebook, Instagram, Mail } from 'lucide-react';
 
@@ -8,14 +7,14 @@ const Footer: React.FC = () => {
       <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-12">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
           <div>
-            <a href="#" className="text-2xl font-bold text-white mb-4 block">
+            <a href="/" className="text-2xl font-bold text-white mb-4 block">
               ChessLink
             </a>
             <p className="text-gray-400 mb-6">
               Where digital innovation meets classical chess, creating a new way to play, learn, and enjoy the world's most enduring strategy game.
             </p>
             <div className="flex space-x-4">
-              <a href="#" className="text-gray-400 hover:text-white transition-colors">
+              <a href="https://github.com/LinkChess" className="text-gray-400 hover:text-white transition-colors">
                 <Github size={20} />
               </a>
               <a href="#" className="text-gray-400 hover:text-white transition-colors">
@@ -33,11 +32,12 @@ const Footer: React.FC = () => {
           <div>
             <h3 className="text-lg font-semibold mb-4">Quick Links</h3>
             <ul className="space-y-2">
-              <li><a href="#features" className="text-gray-400 hover:text-white transition-colors">Features</a></li>
-              <li><a href="#hardware" className="text-gray-400 hover:text-white transition-colors">Hardware</a></li>
-              <li><a href="#software" className="text-gray-400 hover:text-white transition-colors">Software</a></li>
-              <li><a href="#demo" className="text-gray-400 hover:text-white transition-colors">Demo</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Support</a></li>
+              <li><a href="/#features" className="text-gray-400 hover:text-white transition-colors">Features</a></li>
+              <li><a href="/#hardware" className="text-gray-400 hover:text-white transition-colors">Hardware</a></li>
+              <li><a href="/#software" className="text-gray-400 hover:text-white transition-colors">Software</a></li>
+              <li><a href="/demo" className="text-gray-400 hover:text-white transition-colors">Demo</a></li>
+              <li><a href="/live" className="text-gray-400 hover:text-white transition-colors">Live Games</a></li>
+              <li><a href="/play" className="text-gray-400 hover:text-white transition-colors">Play Chess</a></li>
             </ul>
           </div>
           
