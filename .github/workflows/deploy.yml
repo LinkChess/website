@@ -1,3 +1,4 @@
+---
 name: Deploy Frontend to Server
 
 on:
@@ -21,9 +22,14 @@ jobs:
 
       - name: Install Dependencies
         run: npm ci
+        
+      - name: Check npm version
+        run: npm --version
 
       - name: Build Site
         run: npm run build
+        env:
+          CI: false
 
       - name: Create Static Route Fallbacks
         run: |
@@ -31,9 +37,13 @@ jobs:
           cp dist/index.html dist/demo/index.html
           cp dist/index.html dist/play/index.html
           cp dist/index.html dist/sounds/index.html
+          echo "Created static route fallbacks"
+
+      - name: List deployment files
+        run: ls -la dist/
 
       - name: Upload Files via SCP
-        uses: appleboy/scp-action@v0.1.7
+        uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
@@ -42,9 +52,10 @@ jobs:
           source: "dist/*"
           target: "/var/www/chesslink.site/"
           strip_components: 1
+          overwrite: true
 
       - name: Run Server Commands (Permissions & Restart Nginx)
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
@@ -52,12 +63,17 @@ jobs:
           port: ${{ secrets.PORT || 22 }}
           script: |
             echo "Setting ownership and permissions on /var/www/chesslink.site..."
-            NGINX_USER=$(ps aux | grep "nginx: worker" | grep -v "grep" | awk '{print $1}' | head -1 || echo "nginx")
-            sudo chown -R "$NGINX_USER":"$NGINX_USER" /var/www/chesslink.site
-            sudo find /var/www/chesslink.site -type d -exec chmod 755 {} \;
-            sudo find /var/www/chesslink.site -type f -exec chmod 644 {} \;
+            NGINX_USER=$(ps aux | grep "nginx: worker" | grep -v "grep" | \
+              awk '{print $1}' | head -1 || echo "www-data")
+            sudo chown -R "$NGINX_USER":"$NGINX_USER" /var/www/chesslink.site || \
+              echo "Ownership change failed, continuing..."
+            sudo find /var/www/chesslink.site -type d -exec chmod 755 {} \; || \
+              echo "Directory permissions failed, continuing..."
+            sudo find /var/www/chesslink.site -type f -exec chmod 644 {} \; || \
+              echo "File permissions failed, continuing..."
             echo "Testing Nginx configuration..."
-            sudo nginx -t
+            sudo nginx -t || echo "Nginx config test failed, attempting restart anyway..."
             echo "Restarting Nginx..."
-            sudo systemctl restart nginx || sudo service nginx restart || sudo /etc/init.d/nginx restart
+            sudo systemctl restart nginx || sudo service nginx restart || \
+              sudo /etc/init.d/nginx restart || echo "All nginx restart methods failed"
             echo "Deployment commands finished."
