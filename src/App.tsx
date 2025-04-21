@@ -10,6 +10,7 @@ import PlayPage from "./pages/Play";
 import SoundSettingsPage from "./pages/SoundSettings";
 import Connect from "./pages/Connect";
 import Game from "./pages/Game";
+import LiveGamesPage from "./pages/Live";
 
 const queryClient = new QueryClient();
 
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="/sounds" element={<SoundSettingsPage />} />
           <Route path="/connect" element={<Connect />} />
           <Route path="/game/:gameId" element={<Game />} />
+          <Route path="/live" element={<LiveGamesPage />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
