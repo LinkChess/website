@@ -102,13 +102,20 @@ async def spectator_wait_for_event(timeout=5):
 async def host_client_logic():
     """Simulate a host client connection using python-socketio"""
     sio = sio_host # Use the host client instance
-    game_id_to_simulate = "test-game-123" # Hardcode game ID for simulation
+    game_id_to_simulate = "long-sim-game-001" # New game ID
     
-    # Define a simple game sequence (SAN)
-    game_moves_san = ["e4", "e5", "Nf3", "Nc6", "Bb5", "a6", "Bxc6", "dxc6", "O-O"]
+    # Define a longer game sequence (Ruy Lopez, Morphy Defense Deferred)
+    game_moves_san = [
+        "e4", "e5", "Nf3", "Nc6", "Bb5", "a6", "Ba4", "Nf6", "O-O", "Be7", # 10 moves
+        "Re1", "b5", "Bb3", "d6", "c3", "O-O", "h3", "Na5", "Bc2", "c5",  # 20 moves
+        "d4", "Qc7", "Nbd2", "cxd4", "cxd4", "Nc6", "Nb3", "a5", "Be3", "a4", # 30 moves
+        "Nbd2", "Bd7", "Rc1", "Qb8", "Bb1", "Rc8", "Rxc8+", "Qxc8", "Qd3", "Qa8", # 40 moves
+        "Bd1", "h6", "Bb3", "Rc8", "Rc1", "Rxc1+", "Bxc1", "Qa6", "Qxa6", "Bxa6", # 50 moves
+        "Ne1", "Bd8", "Nd3", "Bb7", "f3", "Nd7", "Kf2", "f6", "Ke3", "Kf7" # 60 moves
+    ]
     
     try:
-        print("\n--- Starting Host Client Test (with move simulation) --- ")
+        print("\n--- Starting Host Client Test (LONG move simulation) --- ")
         await sio.connect(SERVER_URI, wait=False) # Corrected waits -> wait
         
         # Wait for connection confirmation
@@ -124,7 +131,7 @@ async def host_client_logic():
         print(f"\nHost: Starting a new game ({game_id_to_simulate})...")
         await sio.emit("start_game", {
             "id": game_id_to_simulate,
-            "title": "Simulated Game Ruy Lopez",
+            "title": "Ruy Lopez Simulation",
             "white": "SimulatorHost",
             "black": "SimulatorOpponent"
         })
@@ -142,7 +149,7 @@ async def host_client_logic():
                 print(f"  Move {i+1} ({move_san}): {current_fen}")
                 # Emit the FEN to the server as if it came from hardware
                 await sio.emit("simulate_hardware_input", {"gameId": game_id_to_simulate, "fen": current_fen})
-                await asyncio.sleep(1.5) # Pause between moves
+                await asyncio.sleep(2.0) # Pause between moves (increased to 2s)
             except ValueError as e:
                 print(f"Error playing move '{move_san}': {e}")
                 break # Stop simulation on error
