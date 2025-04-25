@@ -277,9 +277,17 @@ const GamePage: React.FC = () => {
       return;
     }
 
+    // --- Modified WebSocket Connection ---
+    // Use environment variable for URL, fallback for local dev
+    const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:8765';
+    console.log(`Connecting WebSocket to: ${SOCKET_URL}`); // Log the URL being used
+
     // Establish WebSocket connection
-    const socket = io('http://localhost:8765');
+    const socket = io(SOCKET_URL, {
+        transports: ['websocket'] // Explicitly use websockets
+    });
     socketRef.current = socket;
+    // --- End Modified WebSocket Connection ---
     
     console.log(`Attempting to connect for game: ${gameId}`);
     toast.info(`Connecting to game ${gameId}...`);

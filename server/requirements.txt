@@ -1,4 +1,4 @@
-chess
+python-chess
 sqlalchemy
 flask
 pyserial

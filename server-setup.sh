@@ -1,23 +1,4 @@
 #!/bin/bash
-
-# Exit on any error
-set -e
-
-# --- Frontend Build ---
-echo "Building the site with production Socket.IO URL..."
-# Set the environment variable for the build process
-VITE_SOCKET_URL='wss://chesslink.site' npm run build
-
-# --- Local SPA Workaround Removal ---
-# Removed: mkdir -p dist/demo dist/play dist/sounds
-# Removed: cp dist/index.html dist/demo/index.html
-# Removed: cp dist/index.html dist/play/index.html
-# Removed: cp dist/index.html dist/sounds/index.html
-
-# --- Server Setup Script Generation ---
-echo "Creating server setup script (server-setup.sh)..."
-cat > server-setup.sh << 'EOL'
-#!/bin/bash
 set -e
 
 echo ">>> Installing prerequisites using dnf..."
@@ -158,38 +139,3 @@ else
 fi
 
 echo "Server setup complete!"
-EOL
-
-chmod +x server-setup.sh
-
-# --- Deployment ---
-echo "Deploying to server..."
-# IMPORTANT: Use SSH keys for authentication instead of passwords!
-# Setup: ssh-keygen -> ssh-copy-id root@107.175.111.165
-SERVER="root@107.175.111.165"
-SERVER_IP="107.175.111.165" # Keep IP for potential direct checks
-BACKEND_DEST_DIR="/opt/chesslink-backend"
-FRONTEND_DEST_DIR="/var/www/chesslink.site"
-
-# Create necessary directories on server before copying
-echo "Ensuring target directories exist on server..."
-ssh -p 22 "$SERVER" "mkdir -p $BACKEND_DEST_DIR $FRONTEND_DEST_DIR"
-
-# --- Upload Files ---
-echo "Uploading frontend files (dist/*) to $FRONTEND_DEST_DIR ..."
-scp -P 22 -r dist/* "$SERVER:$FRONTEND_DEST_DIR/"
-
-echo "Uploading backend files (server/*) to $BACKEND_DEST_DIR ..."
-scp -P 22 -r server/* "$SERVER:$BACKEND_DEST_DIR/"
-
-echo "Uploading and running server setup script..."
-scp -P 22 server-setup.sh "$SERVER:~/"
-ssh -p 22 "$SERVER" "bash ~/server-setup.sh"
-
-# Clean up local setup script
-rm server-setup.sh
-
-echo "Deployment complete! Your site should be accessible at http://chesslink.site" # Changed to http for now
-echo "The backend should be running and proxied via Nginx."
-echo "IMPORTANT: Setup HTTPS (Let's Encrypt/Certbot) and update VITE_SOCKET_URL to wss:// for production!"
-echo "Also ensure you are using SSH Key authentication, not passwords." 
