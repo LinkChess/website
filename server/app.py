@@ -1,5 +1,6 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
+from flask_socketio import SocketIO, emit
 import serial
 import serial.tools.list_ports
 import re
@@ -11,18 +12,21 @@ from chessClass import ChessGame
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
+socketio = SocketIO(app, cors_allowed_origins="*")  # Initialize SocketIO with CORS
 
-# Global state for serial port connection
+# Global state
 serial_connection = None
 serial_thread = None
 active_game = None
 stop_thread = False
+connected_clients = {}  # Store connected WebSocket clients
+current_game_id = None  # Store the current game ID being broadcast
 
 # FEN regex pattern (basic validation)
 FEN_PATTERN = re.compile(r"^[1-8pnbrqkPNBRQK/]+ [wb] [KQkq-]+ [a-h1-8-]+ \d+ \d+$")
 
 def read_serial_data():
-    global serial_connection, active_game, stop_thread
+    global serial_connection, active_game, stop_thread, current_game_id
     
     last_malformed_line_logged = None  # Keep track of the last logged malformed line (as string)
     
@@ -115,7 +119,28 @@ def read_serial_data():
                 print(f"Processing {len(data_to_process)} valid FEN positions")
                 for fen in data_to_process:
                     active_game.add_to_queue(fen)
-                active_game.process_queue() # Process the whole batch at once
+                
+                # Store the initial state
+                initial_state_len = len(active_game.master_state)
+                
+                # Process the queued positions
+                active_game.process_queue()
+                
+                # Check if new moves were added and emit them via WebSocket
+                if len(active_game.master_state) > initial_state_len and current_game_id is not None:
+                    for i in range(initial_state_len, len(active_game.master_state)):
+                        move = active_game.master_state[i]
+                        # Emit the position update to connected clients
+                        socketio.emit('position', {
+                            'type': 'position',
+                            'gameId': current_game_id,
+                            'fen': move.fen,
+                            'moveNumber': i,
+                            'player': move.player,
+                            'algebraic': move.algebraic,
+                            'isLegal': move.is_legal
+                        })
+                        print(f"[POSITION EVENT] Emitted position update from read_serial_data for move {i}: {move.algebraic or 'unknown move'} | FEN: {move.fen[:15]}...")
 
             # --- Phase 5: Small sleep --- 
             time.sleep(0.1) # Prevent CPU hogging
@@ -125,6 +150,8 @@ def read_serial_data():
             serial_connection = None # Assume connection is lost
             stop_thread = True # Signal thread stop
             last_malformed_line_logged = None
+            # Emit a disconnect event to clients
+            socketio.emit('hardware_status', {'status': 'disconnected', 'message': str(outer_ser_e)})
         except Exception as e:
             print(f"Error in serial reading loop: {e}")
             # Attempt recovery
@@ -135,12 +162,402 @@ def read_serial_data():
                 else:
                      # If connection closed unexpectedly, stop thread
                      stop_thread = True
+                     # Emit a disconnect event to clients
+                     socketio.emit('hardware_status', {'status': 'error', 'message': str(e)})
             except:
                  stop_thread = True # Stop if recovery fails
             time.sleep(1)  # Wait a bit longer before trying again
     
     print("Serial reading thread stopped")
+    socketio.emit('hardware_status', {'status': 'disconnected', 'message': 'Serial connection closed'})
 
+# SocketIO event handlers
+@socketio.on('connect')
+def handle_connect():
+    """Handle client connection"""
+    print(f"Client connected: {request.sid}")
+    connected_clients[request.sid] = {'connected': True}
+    # Send current status to the newly connected client
+    emit('hardware_status', {
+        'status': 'connected' if (serial_connection is True) or (serial_connection and serial_connection.is_open) else 'disconnected',
+        'current_game': current_game_id
+    })
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    """Handle client disconnection"""
+    print(f"Client disconnected: {request.sid}")
+    if request.sid in connected_clients:
+        del connected_clients[request.sid]
+
+@socketio.on('start_game')
+def handle_start_game(data):
+    """Start a new game broadcast"""
+    global current_game_id, serial_connection, serial_thread, active_game, stop_thread
+    
+    try:
+        # Check if connected to hardware
+        if not serial_connection:
+            emit('error', {'message': 'Not connected to hardware. Please connect first.'})
+            return
+        
+        # For normal serial connection, check if it's open
+        if not isinstance(serial_connection, bool) and not serial_connection.is_open:
+            emit('error', {'message': 'Not connected to hardware. Please connect first.'})
+            return
+            
+        # Extract game details from the data
+        game_id = data.get('id', str(uuid.uuid4()))
+        current_game_id = game_id
+        
+        # Setup the game in the ChessGame system
+        if active_game and active_game.game_id != game_id:
+            # If we're switching games, save the current one
+            if active_game:
+                active_game.save_to_db()
+                
+        # Load or create the game
+        game = ChessGame.load_from_db(game_id)
+        if not game:
+            game = ChessGame(game_id)
+            # Set game metadata from the request
+            if 'title' in data:
+                game.event = data['title']
+            if 'white' in data:
+                game.white = data['white']
+            if 'black' in data:
+                game.black = data['black']
+            game.save_to_db()
+            
+        active_game = game
+        
+        # Let the client know the game has started
+        emit('game_started', {
+            'gameId': game_id,
+            'initialPosition': active_game.master_state[0].fen,
+            'message': 'Game broadcast started'
+        })
+        
+        # Broadcast to all clients that a new game has started
+        socketio.emit('new_game', {
+            'type': 'new_game',
+            'game': {
+                'id': game_id,
+                'title': active_game.event,
+                'players': {
+                    'white': active_game.white,
+                    'black': active_game.black
+                },
+                'status': 'active',
+                'lastUpdate': time.time() * 1000,  # milliseconds since epoch
+                'currentPosition': active_game.master_state[0].fen,
+                'moveCount': 0,
+                'viewerCount': len(connected_clients)
+            }
+        })
+        
+        print(f"Started new game broadcast: {game_id}")
+        
+    except Exception as e:
+        print(f"Error starting game: {str(e)}")
+        emit('error', {'message': f'Failed to start game: {str(e)}'})
+
+@socketio.on('end_game')
+def handle_end_game(data):
+    """End a game broadcast"""
+    global current_game_id, active_game
+    
+    try:
+        game_id = data.get('gameId', current_game_id)
+        
+        if not game_id:
+            emit('error', {'message': 'No active game to end'})
+            return
+            
+        if active_game and active_game.game_id == game_id:
+            # Save the game state
+            active_game.save_to_db()
+            print(f"Game {game_id} saved to database")
+            
+            # Broadcast that the game has ended
+            socketio.emit('game_ended', {
+                'type': 'game_ended',
+                'gameId': game_id
+            })
+            
+            current_game_id = None
+            emit('game_ended', {'message': f'Game {game_id} broadcast ended'})
+        else:
+            emit('error', {'message': f'Game {game_id} is not active'})
+            
+    except Exception as e:
+        print(f"Error ending game: {str(e)}")
+        emit('error', {'message': f'Failed to end game: {str(e)}'})
+
+@socketio.on('connect_hardware')
+def handle_connect_hardware(data):
+    """Connect to hardware via serial port"""
+    global serial_connection, serial_thread, active_game, stop_thread
+    
+    try:
+        if not data or 'port' not in data:
+            emit('error', {'message': 'Port is required'})
+            return
+            
+        port = data['port']
+        baud_rate = data.get('baudRate', 115200)
+        
+        # Check if already connected
+        if serial_connection and serial_connection.is_open:
+            emit('error', {'message': f'Already connected to {serial_connection.port}. Disconnect first.'})
+            return
+        
+        # Special case for mock connections (used in testing)
+        if port == 'MOCK':
+            print("Using mock serial connection for testing")
+            serial_connection = True  # Not a real connection but mark as connected
+            
+            # Emit connection successful event
+            emit('hardware_connected', {
+                'status': 'connected',
+                'port': port,
+                'message': f'Connected to {port} (mock)'
+            })
+            
+            # Also broadcast to all clients
+            socketio.emit('hardware_status', {
+                'status': 'connected',
+                'port': port
+            })
+            return
+            
+        # Connect to serial port
+        serial_connection = serial.Serial(port, baud_rate, timeout=1)
+        
+        # Start reading thread
+        stop_thread = False
+        serial_thread = threading.Thread(target=read_serial_data)
+        serial_thread.daemon = True
+        # serial_thread.start() # TEMPORARILY COMMENTED OUT
+        print(f"--- Serial reading thread NOT started (Commented out in handle_connect_hardware) ---") # Added log
+        
+        emit('hardware_connected', {
+            'status': 'connected',
+            'port': port,
+            'message': f'Connected to {port}'
+        })
+        
+        # Also broadcast to all clients
+        socketio.emit('hardware_status', {
+            'status': 'connected',
+            'port': port
+        })
+        
+        print(f"Connected to hardware on port {port}")
+        
+    except serial.SerialException as e:
+        emit('error', {'message': f'Failed to connect to port: {str(e)}'})
+    except Exception as e:
+        emit('error', {'message': f'Error: {str(e)}'})
+
+@socketio.on('disconnect_hardware')
+def handle_disconnect_hardware():
+    """Disconnect from hardware"""
+    global serial_connection, serial_thread, active_game, stop_thread
+    
+    try:
+        if not serial_connection:
+            emit('error', {'message': 'Not connected to any hardware'})
+            return
+        
+        # Handle mock connection
+        if serial_connection is True:  # Special case for mock connections
+            serial_connection = None
+            
+            # Process remaining items in the queue and save
+            if active_game:
+                active_game.process_queue()
+                active_game.save_to_db()
+                
+            emit('hardware_disconnected', {
+                'status': 'disconnected',
+                'message': 'Disconnected from MOCK connection'
+            })
+            
+            # Also broadcast to all clients
+            socketio.emit('hardware_status', {
+                'status': 'disconnected',
+                'port': 'MOCK'
+            })
+            
+            print("Disconnected from mock hardware")
+            return
+            
+        if not serial_connection.is_open:
+            emit('error', {'message': 'Not connected to any hardware'})
+            return
+            
+        # Stop the reading thread
+        stop_thread = True
+        if serial_thread and serial_thread.is_alive():
+            serial_thread.join(2.0)  # Wait up to 2 seconds
+            
+        # Close the connection
+        port = serial_connection.port
+        serial_connection.close()
+        serial_connection = None
+        
+        # Process remaining items in the queue and save
+        if active_game:
+            active_game.process_queue()
+            active_game.save_to_db()
+            
+        emit('hardware_disconnected', {
+            'status': 'disconnected',
+            'message': f'Disconnected from {port}'
+        })
+        
+        # Also broadcast to all clients
+        socketio.emit('hardware_status', {
+            'status': 'disconnected',
+            'port': port
+        })
+        
+        print(f"Disconnected from hardware on port {port}")
+        
+    except Exception as e:
+        emit('error', {'message': f'Error: {str(e)}'})
+
+@socketio.on('get_live_games')
+def handle_get_live_games():
+    """Get list of live games"""
+    try:
+        if current_game_id and active_game:
+            # We only support one active game at a time in this implementation
+            live_games = [{
+                'id': current_game_id,
+                'title': active_game.event,
+                'players': {
+                    'white': active_game.white,
+                    'black': active_game.black
+                },
+                'status': 'active',
+                'lastUpdate': time.time() * 1000,  # milliseconds since epoch
+                'currentPosition': active_game.master_state[-1].fen,
+                'moveCount': len(active_game.master_state) - 1,  # Subtract 1 for initial state
+                'viewerCount': len(connected_clients)
+            }]
+        else:
+            live_games = []
+            
+        emit('live_games_list', {
+            'type': 'live_games_list',
+            'games': live_games
+        })
+        
+    except Exception as e:
+        emit('error', {'message': f'Error: {str(e)}'})
+
+@socketio.on('get_game_state')
+def handle_get_game_state(data):
+    """Get current state of a specific game"""
+    try:
+        game_id = data.get('gameId')
+        
+        if not game_id:
+            emit('error', {'message': 'Game ID is required'})
+            return
+            
+        # Check if it's the active game
+        if active_game and active_game.game_id == game_id:
+            game = active_game
+        else:
+            # Load from database
+            game = ChessGame.load_from_db(game_id)
+            
+        if not game:
+            emit('error', {'message': f'Game {game_id} not found'})
+            return
+            
+        # Get the latest position
+        latest_position = game.master_state[-1].fen if game.master_state else None
+        
+        emit('game_state', {
+            'gameId': game_id,
+            'title': game.event,
+            'players': {
+                'white': game.white,
+                'black': game.black
+            },
+            'status': 'active' if game_id == current_game_id else 'ended',
+            'position': latest_position,
+            'moveCount': len(game.master_state) - 1,  # Subtract 1 for initial state
+            'viewerCount': len(connected_clients)
+        })
+        
+    except Exception as e:
+        emit('error', {'message': f'Error: {str(e)}'})
+
+@socketio.on('simulate_hardware_input')
+def handle_simulate_hardware_input(data):
+    """Simulate hardware input by handling a FEN string directly from a client FOR A SPECIFIC GAME"""
+    try:
+        if 'fen' not in data or 'gameId' not in data:
+            emit('error', {'message': 'FEN string and gameId are required'})
+            return
+            
+        fen = data['fen']
+        game_id = data['gameId']
+        
+        # Load the specific game instance based on the provided gameId
+        target_game = ChessGame.load_from_db(game_id)
+        
+        if not target_game:
+            # Maybe check the global active_game as a fallback?
+            global active_game, current_game_id
+            if game_id == current_game_id and active_game:
+                target_game = active_game
+            else:
+                 emit('error', {'message': f'Game with ID {game_id} not found or not active.'})
+                 return
+            
+        print(f"Simulated hardware input for game {game_id}: {fen}")
+        
+        # Store initial state length before processing
+        initial_state_len = len(target_game.master_state)
+        
+        # Process the FEN position for the target game
+        target_game.add_to_queue(fen)
+        target_game.process_queue()
+        
+        # Check if new moves were added and emit them via WebSocket
+        if len(target_game.master_state) > initial_state_len:
+            # Get the latest move added to this specific game
+            move = target_game.master_state[-1]
+            move_index = len(target_game.master_state) - 1
+            
+            # Emit the position update, ensuring it targets the correct game ID
+            # The 'position' event might be listened to by multiple clients viewing different games
+            socketio.emit('position', {
+                'type': 'position',
+                'gameId': game_id, # Use the specific game ID
+                'fen': move.fen,
+                'moveNumber': move_index,
+                'player': move.player,
+                'algebraic': move.algebraic,
+                'isLegal': move.is_legal
+            })
+            print(f"[POSITION EVENT] Emitted simulated position update from simulate_hardware_input for game {game_id}: {move.algebraic or 'unknown move'} | FEN: {move.fen[:15]}...")
+            
+            # Persist the change for the loaded game if it wasn't the global active one
+            if target_game != active_game:
+                 target_game.save_to_db()
+                 
+    except Exception as e:
+        print(f"Error processing simulated input: {str(e)}")
+        emit('error', {'message': f'Error: {str(e)}'})
+
+# REST API routes (keeping these for compatibility)
 @app.route('/games', methods=['POST'])
 def create_game():
     """Create a new chess game and save it to the database"""
@@ -328,12 +745,13 @@ def connect_serial():
         stop_thread = False
         serial_thread = threading.Thread(target=read_serial_data)
         serial_thread.daemon = True
-        serial_thread.start()
+        # serial_thread.start() # TEMPORARILY COMMENTED OUT
+        print(f"--- Serial reading thread NOT started (Commented out in handle_connect_hardware) ---") # Added log
         
-        return jsonify({
-            'status': 'success',
-            'message': f'Connected to {port} for game {game_id}',
+        emit('hardware_connected', {
+            'status': 'connected',
             'port': port,
+            'message': f'Connected to {port} for game {game_id}',
             'game_id': game_id
         }), 200
             
@@ -501,4 +919,5 @@ def update_game_result(game_id):
         }), 500
 
 if __name__ == '__main__':
-    app.run(debug=True, host='127.0.0.1', port=5000) 
+    print("Starting ChessLink WebSocket Server on port 8765...")
+    socketio.run(app, host='127.0.0.1', port=8765, debug=True, allow_unsafe_werkzeug=True) 

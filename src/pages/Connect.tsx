@@ -1,4 +1,7 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -16,10 +19,22 @@ import {
   ArrowDownToLine, 
   ExternalLink,
   PlayCircle, 
-  CircleOff
+  CircleOff,
+  Wifi,
+  WifiOff,
+  HardDrive,
+  RadioTower
 } from "lucide-react";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { io, Socket } from 'socket.io-client';
+
+interface PortInfo {
+  device: string;
+  description: string;
+  manufacturer: string;
+}
 
 const Connect = () => {
   const [game, setGame] = useState(new Chess());
@@ -29,14 +44,17 @@ const Connect = () => {
   const [lastMove, setLastMove] = useState("");
   const [gameId, setGameId] = useState("");
   const [shareUrl, setShareUrl] = useState("");
-  const webSocketRef = useRef<WebSocket | null>(null);
+  const socketRef = useRef<Socket | null>(null);
   const [dataFlow, setDataFlow] = useState<string[]>([]);
   const [leds, setLeds] = useState({ whitePlayer: false, blackPlayer: false });
+  const [dataLog, setDataLog] = useState<string[]>([]);
+  const [ports, setPorts] = useState<PortInfo[]>([]);
+  const [selectedPort, setSelectedPort] = useState<string>("");
   const navigate = useNavigate();
 
   // Initialize WebSocket connection
   const connectWebSocket = () => {
-    if (webSocketRef.current && webSocketRef.current.readyState === WebSocket.OPEN) {
+    if (socketRef.current && socketRef.current.connected) {
       return; // Already connected
     }
 
@@ -44,52 +62,48 @@ const Connect = () => {
     addLogEntry("Connecting to ChessLink server...");
 
     try {
-      const ws = new WebSocket('ws://localhost:8765');
-      
-      ws.onopen = () => {
+      // Disconnect previous socket if exists
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+      }
+
+      const socket = io('http://localhost:8765'); // Initialize Socket.IO client
+      socketRef.current = socket; // Store the reference
+
+      socket.on('connect', () => {
         setIsConnected(true);
-        addLogEntry("✅ WebSocket connected");
+        addLogEntry("✅ Socket.IO connected");
         toast.success("Connected to ChessLink server");
-        webSocketRef.current = ws;
-      };
-      
-      ws.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          
-          if (data.type === "info") {
-            addLogEntry(`ℹ️ ${data.message}`);
-          } else if (data.type === "position") {
-            processPosition(data.fen);
-          } else if (data.type === "error") {
-            addLogEntry(`❌ Error: ${data.message}`);
-            toast.error(data.message);
-          }
-        } catch (error) {
-          console.error("Error parsing WebSocket message:", error);
-          addLogEntry(`❌ Error parsing message: ${error.message}`);
-        }
-      };
-      
-      ws.onerror = () => {
+        // Optionally request initial status or data
+        socket.emit('get_hardware_status'); // Example event
+      });
+
+      socket.on('disconnect', () => {
         setIsConnected(false);
-        addLogEntry("❌ WebSocket connection error");
-        toast.error("Connection error. Is the ChessLink server running?");
-      };
-      
-      ws.onclose = () => {
-        setIsConnected(false);
+        addLogEntry("Socket.IO disconnected");
         if (isLiveGame) {
-          addLogEntry("❌ Lost connection to ChessLink server");
-          toast.error("Lost connection to ChessLink server");
-        } else {
-          addLogEntry("WebSocket connection closed");
+          toast.error("Lost connection during live game");
         }
-        webSocketRef.current = null;
-      };
+        socketRef.current = null; // Clear ref on disconnect
+      });
+
+      socket.on('connect_error', (err) => {
+        setIsConnected(false);
+        addLogEntry(`❌ Socket.IO Connection Error: ${err.message}`);
+        toast.error("Connection failed. Is server running?");
+        socketRef.current = null;
+      });
+
+      // Example: Listen for hardware status updates
+      socket.on('hardware_status', (data) => {
+        addLogEntry(`Hardware Status: ${JSON.stringify(data)}`);
+        // Update UI based on status
+      });
+
     } catch (error) {
-      addLogEntry(`❌ Failed to connect: ${error.message}`);
-      toast.error(`Failed to connect: ${error.message}`);
+      console.error("Connection setup error:", error);
+      addLogEntry(`❌ Setup Error: ${error.message}`);
+      toast.error("Failed to set up connection");
     }
   };
 
@@ -153,11 +167,8 @@ const Connect = () => {
     toast.success("Live game started!");
     
     // Send start game command to server if needed
-    if (webSocketRef.current && webSocketRef.current.readyState === WebSocket.OPEN) {
-      webSocketRef.current.send(JSON.stringify({
-        command: "start_game",
-        game_id: newGameId
-      }));
+    if (socketRef.current && socketRef.current.connected) {
+      socketRef.current.emit('start_game', { game_id: newGameId });
     }
   };
 
@@ -168,19 +179,15 @@ const Connect = () => {
     toast.info("Live game stopped");
     
     // Send stop game command to server if needed
-    if (webSocketRef.current && webSocketRef.current.readyState === WebSocket.OPEN) {
-      webSocketRef.current.send(JSON.stringify({
-        command: "stop_game",
-        game_id: gameId
-      }));
+    if (socketRef.current && socketRef.current.connected) {
+      socketRef.current.emit('stop_game', { game_id: gameId });
     }
   };
 
   // Disconnect from WebSocket
   const disconnect = () => {
-    if (webSocketRef.current) {
-      webSocketRef.current.close();
-      webSocketRef.current = null;
+    if (socketRef.current) {
+      socketRef.current.disconnect();
     }
     
     setIsConnected(false);
@@ -212,8 +219,8 @@ const Connect = () => {
   // Cleanup WebSocket on unmount
   useEffect(() => {
     return () => {
-      if (webSocketRef.current) {
-        webSocketRef.current.close();
+      if (socketRef.current) {
+        socketRef.current.disconnect();
       }
     };
   }, []);
@@ -234,184 +241,148 @@ const Connect = () => {
     window.open(shareUrl, '_blank');
   };
 
+  // Fetch available serial ports
+  const fetchPorts = async () => {
+    try {
+      const response = await fetch('http://localhost:8765/serial/ports');
+      const data = await response.json();
+      if (data.status === 'success') {
+        setPorts(data.ports || []);
+      } else {
+        addLogEntry(`❌ Error fetching ports: ${data.message}`);
+      }
+    } catch (error) {
+      addLogEntry(`❌ Network error fetching ports: ${error.message}`);
+    }
+  };
+
+  useEffect(() => {
+    fetchPorts();
+  }, []);
+
+  // Placeholder for connecting to hardware (using Socket.IO events)
+  const connectHardware = () => {
+    if (!selectedPort) {
+      toast.error("Please select a serial port first.");
+      return;
+    }
+    if (!socketRef.current || !socketRef.current.connected) {
+      toast.error("Not connected to the server. Connect WebSocket first.");
+      return;
+    }
+    addLogEntry(`Attempting hardware connection on port ${selectedPort}...`);
+    socketRef.current.emit('connect_hardware', { port: selectedPort });
+  };
+
+  // Placeholder for disconnecting hardware
+  const disconnectHardware = () => {
+    if (!socketRef.current || !socketRef.current.connected) {
+      toast.info("Not connected to server.");
+      return;
+    }
+    addLogEntry("Disconnecting hardware...");
+    socketRef.current.emit('disconnect_hardware');
+  };
+
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold text-center mb-8">ChessLink Live Game Connection</h1>
-      
-      <div className="grid md:grid-cols-2 gap-6">
-        {/* Left Column - Chessboard */}
-        <div>
-          <Card>
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <CardTitle>Live Game Board</CardTitle>
-                <div className="flex gap-2">
-                  <Badge variant="outline" className={isConnected ? "bg-green-50 text-green-700 border-green-200" : "bg-red-50 text-red-700 border-red-200"}>
+    <div className="min-h-screen bg-white">
+      <Navbar />
+      <main className="pt-20 pb-16">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto">
+            <div className="text-center mb-12">
+              <h1 className="text-4xl font-bold mb-3">Connect Hardware</h1>
+              <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+                Connect your ChessLink hardware to the server to enable live game broadcasting.
+              </p>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <CardTitle>ChessLink Connection</CardTitle>
+                  <Badge variant={isConnected ? "default" : "destructive"} className={isConnected ? "bg-green-600" : ""}>
                     {isConnected ? "Connected" : "Disconnected"}
                   </Badge>
-                  {isLiveGame && (
-                    <Badge variant="default" className="bg-blue-600">
-                      Live
-                    </Badge>
+                </div>
+                <CardDescription>
+                  Manage the connection between the server and your hardware.
+                </CardDescription>
+              </CardHeader>
+              
+              <CardContent className="space-y-6">
+                {/* Data Flow Log */}
+                <div className="border rounded-md bg-black text-green-400 font-mono h-[200px] overflow-y-auto p-2 text-sm">
+                  {dataLog.length > 0 ? (
+                    dataLog.map((entry, i) => (
+                      <div key={i} className="flex">
+                        <span className="opacity-60 mr-2">[{new Date().toLocaleTimeString('en-US', {hour12: false})}]</span>
+                        <span>{entry}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="h-full flex items-center justify-center opacity-60">
+                      {isConnected 
+                        ? "Connected. Waiting for hardware activity..." 
+                        : "Connect to see data flow"}
+                    </div>
                   )}
                 </div>
-              </div>
-              <CardDescription>
-                {isLiveGame ? `Game Status: ${getGameStatus()}` : "Connect to ChessLink server to start a live game"}
-              </CardDescription>
-            </CardHeader>
-            
-            <CardContent className="space-y-6">
-              <div className="aspect-square max-w-md mx-auto">
-                <Chessboard 
-                  position={game.fen()} 
-                  boardWidth={350}
-                  areArrowsAllowed={false}
-                />
-              </div>
-              
-              {/* Player indicators */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex items-center gap-2">
-                  <div className={`w-3 h-3 rounded-full ${leds.whitePlayer ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`}></div>
-                  <span className={`${leds.whitePlayer ? 'font-medium' : ''}`}>
-                    White Player {leds.whitePlayer ? '(Active)' : ''}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className={`w-3 h-3 rounded-full ${leds.blackPlayer ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`}></div>
-                  <span className={`${leds.blackPlayer ? 'font-medium' : ''}`}>
-                    Black Player {leds.blackPlayer ? '(Active)' : ''}
-                  </span>
-                </div>
-              </div>
-              
-              {/* Connection controls */}
-              <div className="flex flex-wrap gap-2 justify-center">
-                {!isConnected ? (
-                  <Button onClick={connectWebSocket}>
-                    Connect to ChessLink
-                  </Button>
-                ) : (
-                  <>
-                    <Button onClick={disconnect} variant="outline">
-                      <CircleOff className="mr-2 h-4 w-4" />
-                      Disconnect
-                    </Button>
-                    
-                    {!isLiveGame ? (
-                      <Button onClick={startLiveGame}>
-                        <PlayCircle className="mr-2 h-4 w-4" />
-                        Start Live Game
-                      </Button>
-                    ) : (
-                      <>
-                        <Button onClick={stopLiveGame} variant="outline">
-                          Stop Game
-                        </Button>
-                        <Button onClick={saveToDemoLibrary} variant="secondary">
-                          <ArrowDownToLine className="mr-2 h-4 w-4" />
-                          Save to Demo
-                        </Button>
-                      </>
+                
+                {/* Connection Controls */}
+                <div className="grid md:grid-cols-2 gap-4 items-end">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Available Serial Ports</label>
+                    <Select 
+                      onValueChange={setSelectedPort} 
+                      value={selectedPort} 
+                      disabled={ports.length === 0}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={ports.length > 0 ? "Select a port..." : "No ports found"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ports.map((port) => (
+                          <SelectItem key={port.device} value={port.device}>
+                            {port.device} {port.description ? `(${port.description})` : ''}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {ports.length === 0 && (
+                      <p className="text-xs text-gray-500 mt-1">No serial ports detected. Ensure hardware is connected and drivers are installed.</p>
                     )}
-                  </>
-                )}
-              </div>
-              
-              {/* Live game share options */}
-              {isLiveGame && shareUrl && (
-                <div className="mt-4 p-4 border rounded-md bg-gray-50">
-                  <h3 className="font-medium mb-2">Share this live game:</h3>
-                  <div className="flex items-center gap-2">
-                    <input 
-                      type="text" 
-                      value={shareUrl} 
-                      readOnly 
-                      className="flex-1 p-2 text-sm bg-white border rounded-md" 
-                    />
-                    <Button size="sm" onClick={() => {
-                      navigator.clipboard.writeText(shareUrl);
-                      toast.success("Link copied to clipboard!");
-                    }}>
-                      Copy
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={openGameView}>
-                      <ExternalLink className="h-4 w-4" />
-                    </Button>
                   </div>
-                  <p className="text-sm text-gray-500 mt-2">
-                    Anyone with this link can watch your game in real-time
-                  </p>
+                  <Button onClick={fetchPorts} variant="outline" size="sm">Refresh Ports</Button>
                 </div>
-              )}
-            </CardContent>
-          </Card>
+
+                <div className="flex flex-wrap justify-center gap-4">
+                  {!isConnected ? (
+                    <Button onClick={connectWebSocket} className="flex-1">
+                      <RadioTower className="mr-2 h-4 w-4" />
+                      Connect to Server
+                    </Button>
+                  ) : (
+                    <Button onClick={() => socketRef.current?.disconnect()} variant="outline" className="flex-1">
+                      <WifiOff className="mr-2 h-4 w-4" />
+                      Disconnect Server
+                    </Button>
+                  )}
+                  
+                  <Button onClick={connectHardware} disabled={!isConnected || !selectedPort} className="flex-1">
+                    <HardDrive className="mr-2 h-4 w-4" />
+                    Connect Hardware
+                  </Button>
+                  <Button onClick={disconnectHardware} disabled={!isConnected} variant="outline" className="flex-1">
+                    Disconnect Hardware
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
-        
-        {/* Right Column - Data and Log */}
-        <div className="space-y-6">
-          {/* PGN Data Card */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Game PGN</CardTitle>
-              <CardDescription>
-                The live game's PGN notation is updated in real-time
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Textarea
-                value={pgn}
-                onChange={(e) => setPgn(e.target.value)}
-                placeholder="PGN will appear here when a live game is in progress..."
-                className="min-h-[150px] font-mono text-sm"
-                readOnly={isLiveGame}
-              />
-            </CardContent>
-            <CardFooter>
-              <Button 
-                onClick={() => {
-                  navigator.clipboard.writeText(pgn);
-                  toast.success("PGN copied to clipboard");
-                }}
-                variant="outline"
-                className="w-full"
-                disabled={!pgn}
-              >
-                Copy PGN
-              </Button>
-            </CardFooter>
-          </Card>
-          
-          {/* Data Flow Card */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Connection Log</CardTitle>
-              <CardDescription>
-                Real-time data flow from the ChessLink hardware
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="border rounded-md p-3 bg-black text-green-400 font-mono h-[220px] overflow-y-auto space-y-2">
-                {dataFlow.length > 0 ? (
-                  dataFlow.map((entry, i) => (
-                    <div key={i} className="flex">
-                      <span className="opacity-60 mr-2">[{new Date().toLocaleTimeString()}]</span>
-                      <span>{entry}</span>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-center opacity-60 h-full flex items-center justify-center">
-                    {isConnected 
-                      ? "Connected and waiting for activity..." 
-                      : "Connect to see data flow"}
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+      </main>
+      <Footer />
     </div>
   );
 };

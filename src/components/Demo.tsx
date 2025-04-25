@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from 'sonner';
+import io from 'socket.io-client';
 
 // Mock FEN positions for demo
 const DEMO_POSITIONS = [
@@ -454,28 +455,31 @@ const Demo: React.FC = () => {
     setServerStatus('unknown');
     return new Promise((resolve) => {
       try {
-        // Try to connect to the WebSocket server with a short timeout
-        const ws = new WebSocket(getWebSocketUrl());
-        
-        // Set a short timeout to check if connection can be established
+        // Use io() to check connection
+        const socketCheck = io('http://localhost:8765', {
+          reconnection: false, // Don't automatically reconnect for this check
+          timeout: 1000       // Connection timeout
+        });
+
         const timeout = setTimeout(() => {
-          ws.close();
+          socketCheck.disconnect();
           setServerStatus('offline');
           resolve(false);
-        }, 1000);
-        
-        ws.onopen = () => {
+        }, 1000); // Fallback timeout
+
+        socketCheck.on('connect', () => {
           clearTimeout(timeout);
-          ws.close();
+          socketCheck.disconnect(); // Disconnect after successful check
           setServerStatus('online');
           resolve(true);
-        };
-        
-        ws.onerror = () => {
+        });
+
+        socketCheck.on('connect_error', () => {
           clearTimeout(timeout);
+          socketCheck.disconnect();
           setServerStatus('offline');
           resolve(false);
-        };
+        });
       } catch (error) {
         setServerStatus('offline');
         resolve(false);
@@ -508,11 +512,15 @@ const Demo: React.FC = () => {
     setIsCheckingConnection(true);
     
     try {
-      // Add the selected game to the URL
-      const ws = new WebSocket(`ws://localhost:8765?game=${selectedGame}`);
-      
+      // Initialize the socket instance here
+      const socket = io('http://localhost:8765');
+
+      // Store reference if needed (optional, depends on your logic)
+      // setWebSocket(socket); // Assuming setWebSocket state setter exists
+
       let connectionTimeout = setTimeout(() => {
-        if (ws && ws.readyState !== WebSocket.OPEN) {
+        if (socket && !socket.connected) { // Use the local 'socket' variable
+          socket.disconnect();
           setIsConnecting(false);
           setServerAvailable(false);
           addLogEntry("❌ WebSocket connection timed out");
@@ -520,7 +528,8 @@ const Demo: React.FC = () => {
         }
       }, 5000);
       
-      ws.onopen = () => {
+      // Now attach listeners to the initialized 'socket' variable
+      socket.on('connect', () => { // Use the local 'socket' variable
         clearTimeout(connectionTimeout);
         setServerAvailable(true);
         setIsConnected(true);
@@ -529,40 +538,12 @@ const Demo: React.FC = () => {
         setIsCheckingConnection(false);
         addLogEntry("✅ WebSocket connected");
         toast.success("Connected to WebSocket server");
-        
-        // Store the WebSocket instance
-        setWebSocket(ws);
-      };
+        // Store the socket instance if needed globally after connection
+        // Convert Socket.io instance to compatible type or use a different state variable
+        setWebSocket(socket as unknown as WebSocket);
+      });
       
-      ws.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          
-          if (data.type === "info") {
-            addLogEntry(`ℹ️ ${data.message}`);
-            
-            // Store available games if provided
-            if (data.available_games) {
-              setAvailableGames(data.available_games);
-            }
-            
-            // Store current game headers if provided
-            if (data.headers) {
-              setCurrentGameInfo(data.headers);
-            }
-          } else if (data.type === "position") {
-            addRawDataEntry(data.fen);
-          } else if (data.type === "error") {
-            addLogEntry(`❌ Error: ${data.message}`);
-            toast.error(data.message);
-          }
-        } catch (error) {
-          console.error("Error parsing WebSocket message:", error);
-          addLogEntry(`❌ Error parsing message: ${error.message}`);
-        }
-      };
-      
-      ws.onerror = (error) => {
+      socket.on('connect_error', (error) => { // Use the local 'socket' variable
         clearTimeout(connectionTimeout);
         setServerAvailable(false);
         setIsConnecting(false);
@@ -570,21 +551,50 @@ const Demo: React.FC = () => {
         console.error("WebSocket error:", error);
         addLogEntry(`❌ WebSocket error`);
         toast.error("WebSocket connection error. Please check if the server is running.");
-      };
+      });
       
-      ws.onclose = (event) => {
+      socket.on('disconnect', (event) => { // Use the local 'socket' variable
         clearTimeout(connectionTimeout);
         setIsConnected(false);
         setIsConnecting(false);
         setIsCheckingConnection(false);
-        addLogEntry(`WebSocket connection closed (code: ${event.code})`);
+        addLogEntry(`WebSocket connection closed (reason: ${event})`);
         
         // Only show toast if it was previously connected
         if (connectionType === "websocket") {
           toast.info("WebSocket connection closed");
           setConnectionType(null);
         }
-      };
+        setWebSocket(null); // Clear global reference on disconnect
+      });
+
+      // Attach your message handler
+       socket.on('message', (event) => { // Or whatever your server emits
+         try {
+           const data = JSON.parse(event.data); // Assuming server sends JSON string
+           if (data.type === "info") {
+             addLogEntry(`ℹ️ ${data.message}`);
+             
+             // Store available games if provided
+             if (data.available_games) {
+               setAvailableGames(data.available_games);
+             }
+             
+             // Store current game headers if provided
+             if (data.headers) {
+               setCurrentGameInfo(data.headers);
+             }
+           } else if (data.type === "position") {
+             addRawDataEntry(data.fen);
+           } else if (data.type === "error") {
+             addLogEntry(`❌ Error: ${data.message}`);
+             toast.error(data.message);
+           }
+         } catch (error) {
+           console.error("Error parsing WebSocket message:", error);
+           addLogEntry(`❌ Error parsing message: ${error.message}`);
+         }
+       });
     } catch (error) {
       setIsConnecting(false);
       setIsCheckingConnection(false);

@@ -18,6 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { ArrowRight, PlayCircle, PlusCircle, Wifi, WifiOff, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
+import { io } from 'socket.io-client';
 
 // Define interfaces for game data
 interface LiveGame {
@@ -51,7 +52,7 @@ const LiveGamesPage: React.FC = () => {
     white: "Player 1",
     black: "Player 2",
   });
-  const webSocketRef = useRef<WebSocket | null>(null);
+  const socketRef = useRef<ReturnType<typeof io> | null>(null);
   const [dataLog, setDataLog] = useState<string[]>([]);
   const navigate = useNavigate();
 
@@ -66,61 +67,76 @@ const LiveGamesPage: React.FC = () => {
       toast.info("Connecting to ChessLink server...");
       addLogEntry("Connecting to ChessLink server...");
       
-      const ws = new WebSocket('ws://localhost:8765');
+      const socket = io('http://localhost:8765');
       
-      ws.onopen = () => {
+      socket.on('connect', () => {
         setIsConnected(true);
         addLogEntry("✅ Connected to ChessLink server");
         toast.success("Connected to ChessLink server");
-        webSocketRef.current = ws;
+        socketRef.current = socket;
         
         // Request current live games
-        ws.send(JSON.stringify({ command: "get_live_games" }));
-      };
+        socket.emit('get_live_games');
+      });
       
-      ws.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          
-          if (data.type === "live_games_list") {
-            setLiveGames(data.games || []);
-            addLogEntry(`Received ${data.games?.length || 0} live games`);
-          } else if (data.type === "game_update") {
-            updateGameData(data.game);
-            addLogEntry(`Game update received: ${data.game.id}`);
-          } else if (data.type === "new_game") {
-            addNewGame(data.game);
-            addLogEntry(`New game started: ${data.game.id}`);
-            toast.info(`New game started: ${data.game.title}`);
-          } else if (data.type === "game_ended") {
-            handleGameEnded(data.gameId);
-            addLogEntry(`Game ended: ${data.gameId}`);
-          } else if (data.type === "position") {
-            updateGamePosition(data.gameId, data.fen);
-            addLogEntry(`New position for game ${data.gameId}`);
-          }
-        } catch (error) {
-          console.error("Error parsing WebSocket message:", error);
-        }
-      };
+      socket.on('live_games_list', (data) => {
+        // Convert lastUpdate timestamp to Date object for each game
+        const gamesWithDate = (data.games || []).map((game: any) => ({
+          ...game,
+          lastUpdate: new Date(game.lastUpdate) 
+        }));
+        setLiveGames(gamesWithDate);
+        addLogEntry(`Received ${gamesWithDate.length || 0} live games`);
+      });
       
-      ws.onerror = () => {
+      socket.on('game_update', (data) => {
+        // Convert lastUpdate before updating state
+        const updatedGameWithDate = {
+          ...data.game,
+          lastUpdate: new Date(data.game.lastUpdate)
+        };
+        updateGameData(updatedGameWithDate as LiveGame);
+        addLogEntry(`Game update received: ${data.game.id}`);
+      });
+      
+      socket.on('new_game', (data) => {
+        // Convert lastUpdate before adding to state
+        const newGameWithDate = {
+          ...data.game,
+          lastUpdate: new Date(data.game.lastUpdate)
+        };
+        addNewGame(newGameWithDate as LiveGame);
+        addLogEntry(`New game started: ${data.game.id}`);
+        toast.info(`New game started: ${data.game.title}`);
+      });
+      
+      socket.on('game_ended', (data) => {
+        handleGameEnded(data.gameId);
+        addLogEntry(`Game ended: ${data.gameId}`);
+      });
+      
+      socket.on('position', (data) => {
+        updateGamePosition(data.gameId, data.fen);
+        addLogEntry(`New position for game ${data.gameId}`);
+      });
+      
+      socket.on('connect_error', (err) => {
         setIsConnected(false);
-        webSocketRef.current = null;
+        socketRef.current = null;
         toast.error("Connection error. Is the ChessLink server running?");
         addLogEntry("❌ WebSocket connection error");
-      };
+      });
       
-      ws.onclose = () => {
+      socket.on('disconnect', () => {
         setIsConnected(false);
-        webSocketRef.current = null;
+        socketRef.current = null;
         addLogEntry("WebSocket connection closed");
         
         if (isHostingGame) {
           toast.error("Lost connection to ChessLink server");
           setIsHostingGame(false);
         }
-      };
+      });
     } catch (error) {
       console.error("WebSocket connection error:", error);
       toast.error("Failed to connect to ChessLink server");
@@ -130,6 +146,7 @@ const LiveGamesPage: React.FC = () => {
   
   // Update a game in the list
   const updateGameData = (updatedGame: LiveGame) => {
+    // Now receives updatedGame with lastUpdate already as Date
     setLiveGames(prev => prev.map(game => 
       game.id === updatedGame.id ? updatedGame : game
     ));
@@ -137,6 +154,7 @@ const LiveGamesPage: React.FC = () => {
   
   // Add a new game to the list
   const addNewGame = (newGame: LiveGame) => {
+    // Now receives newGame with lastUpdate already as Date
     setLiveGames(prev => [newGame, ...prev]);
   };
   
@@ -193,11 +211,8 @@ const LiveGamesPage: React.FC = () => {
     };
     
     // Send new game to server
-    if (webSocketRef.current) {
-      webSocketRef.current.send(JSON.stringify({
-        command: "start_game",
-        game: newGame
-      }));
+    if (socketRef.current) {
+      socketRef.current.emit('start_game', { game: newGame });
       
       setCurrentGameId(gameId);
       setIsHostingGame(true);
@@ -209,11 +224,8 @@ const LiveGamesPage: React.FC = () => {
   
   // Stop hosting the current game
   const stopHostingGame = () => {
-    if (webSocketRef.current && currentGameId) {
-      webSocketRef.current.send(JSON.stringify({
-        command: "end_game",
-        gameId: currentGameId
-      }));
+    if (socketRef.current && currentGameId) {
+      socketRef.current.emit('end_game', { gameId: currentGameId });
       
       setIsHostingGame(false);
       setCurrentGameId(null);
@@ -229,13 +241,13 @@ const LiveGamesPage: React.FC = () => {
   
   // Disconnect WebSocket
   const disconnect = () => {
-    if (webSocketRef.current) {
+    if (socketRef.current) {
       if (isHostingGame) {
         stopHostingGame();
       }
       
-      webSocketRef.current.close();
-      webSocketRef.current = null;
+      socketRef.current.disconnect();
+      socketRef.current = null;
       setIsConnected(false);
       addLogEntry("Disconnected from ChessLink server");
       toast.info("Disconnected from ChessLink server");
@@ -257,12 +269,13 @@ const LiveGamesPage: React.FC = () => {
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (webSocketRef.current) {
-        webSocketRef.current.close();
+      if (socketRef.current) {
+        socketRef.current.disconnect();
       }
     };
   }, []);
   
+  /* --- TEMPORARILY DISABLED MOCK DATA --- 
   // Mock games for demo purposes
   useEffect(() => {
     // Only add mock games if none exist yet
@@ -293,6 +306,7 @@ const LiveGamesPage: React.FC = () => {
       setLiveGames(mockGames);
     }
   }, [liveGames.length]);
+  */ // --- END TEMPORARILY DISABLED MOCK DATA ---
 
   return (
     <div className="min-h-screen bg-white">
