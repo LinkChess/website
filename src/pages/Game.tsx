@@ -20,6 +20,8 @@ interface MoveData {
   uci: string | null;
   is_legal: boolean | null;
   piece_moved: string | null;
+  from_square: string | null;
+  to_square: string | null;
 }
 
 // Interface for game state data from backend
@@ -36,224 +38,215 @@ interface GameStateData {
 }
 
 // --- Web Audio API Sounds --- 
+// /* // Temporarily commented out for debugging syntax errors
 let audioContext: AudioContext | null = null;
 
-// Function to initialize/resume AudioContext safely
+const isAudioContextReady = (functionName: string): AudioContext | null => {
+  const ctx = getAudioContext(); 
+  if (!ctx) { 
+    console.warn(`${functionName}: getAudioContext() returned null. Cannot play sound.`);
+    return null;
+  }
+  return ctx; 
+};
+
 const getAudioContext = (): AudioContext | null => {
-  // 1. Initialize if needed
   if (!audioContext) {
     try {
-      console.log("Initializing AudioContext...");
+      console.log("Attempting AudioContext Initialization...");
       audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      console.log("AudioContext state after init:", audioContext?.state);
-      // Add event listener for state change to handle resume automatically after user interaction
-      audioContext.onstatechange = () => {
-        console.log("AudioContext state changed:", audioContext?.state);
-      };
+      console.log("Context Initialized. State:", audioContext.state);
+      audioContext.onstatechange = () => console.log("AudioContext state changed:", audioContext?.state);
     } catch (e) {
-      console.error("Web Audio API is not supported in this browser", e);
-      return null; // Return null if initialization fails
+      console.error("Web Audio API is not supported", e);
+      return null;
     }
   }
 
-  // 2. Attempt to resume if suspended (often needs user interaction first)
   if (audioContext.state === 'suspended') {
-    console.log("AudioContext suspended, attempting resume...");
-    // Attempt resume, but don't rely on it immediately
+    console.log("getAudioContext: Context is suspended. Attempting resume...");
     audioContext.resume().catch(e => console.error("Error resuming AudioContext:", e));
-    // Return null for now, as resume is async and might fail. 
-    // Subsequent calls might succeed after user interaction.
-    return null; 
+    return null;
   }
-  
-  // 3. Check if running *after* potential initialization/resume attempt
-  if (audioContext.state !== 'running') {
-     console.warn("AudioContext not running. State:", audioContext.state);
-     return null; // Return null if not running
+
+  if (audioContext.state === 'running') {
+    return audioContext;
   }
-  
-  // 4. If running, return the context
-  // console.log("AudioContext is running."); // Optional: confirmation log
-  return audioContext; 
+
+  console.warn(`getAudioContext: Context is not running (state: ${audioContext.state}).`);
+  return null;
 };
 
-// Simple UI Click Sound
 const playClickSound = () => {
-  console.log("Attempting to play click sound...");
-  const ctx = getAudioContext();
+  const functionName = "playClickSound";
+  const ctx = isAudioContextReady(functionName);
+  if (!ctx) return;
 
-  // Check 1: Is the context available at all?
-  if (!ctx) {
-    console.warn("playClickSound: AudioContext is null or unsupported. Cannot play sound.");
-    return; // Exit function if context cannot be obtained
-  }
-
-  // Check 2: Is the context running?
-  if (ctx.state !== 'running') {
-    console.warn(`playClickSound: AudioContext is not running (state: ${ctx.state}). Attempting resume might be needed via user interaction.`);
-    // We don't try to play sound if not running, as it will likely fail.
-    // Resume is handled by getAudioContext, but might need a user click first.
-    return; // Exit function if context is not running
-  }
-
-  // Context is available and running, proceed with sound generation.
-  console.log(`playClickSound: Context state is '${ctx.state}'. Proceeding with try block.`);
+  console.log(`${functionName}: Context ready, attempting sound generation...`);
   try {
-    // --- Sound Generation --- 
     const oscillator = ctx.createOscillator();
     const gainNode = ctx.createGain();
-
-    oscillator.type = 'sine';
-    oscillator.frequency.setValueAtTime(880, ctx.currentTime);
-    gainNode.gain.setValueAtTime(0.15, ctx.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05);
-
+    oscillator.type = 'triangle';
+    oscillator.frequency.setValueAtTime(1000, ctx.currentTime);
+    gainNode.gain.setValueAtTime(0.1, ctx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.03);
     oscillator.connect(gainNode);
     gainNode.connect(ctx.destination);
-
-    console.log("playClickSound: Starting oscillator...");
     oscillator.start(ctx.currentTime);
-    oscillator.stop(ctx.currentTime + 0.05);
-    console.log("playClickSound: Oscillator scheduled to stop.");
-    // --- End Sound Generation --- 
-
+    oscillator.stop(ctx.currentTime + 0.03);
+    console.log(`${functionName}: Sound scheduled.`);
   } catch (error) {
-    console.error("playClickSound: Error during audio processing:", error);
+    console.error(`${functionName}: Error during audio processing:`, error);
   }
 };
 
-// Placeholder piece sounds
-const playPieceSound = (pieceSymbol: string | null) => {
-  console.log(`Playing sound for piece: ${pieceSymbol}`);
-  const ctx = getAudioContext();
-  if (!ctx) {
-    console.warn(`Cannot play piece sound [${pieceSymbol}]: AudioContext not available/running.`);
-    return;
+// /* // Keep the rest commented // <-- REMOVE THIS START COMMENT
+const calculateDistance = (fromSq: string | null, toSq: string | null): number | null => {
+  if (!fromSq || !toSq || fromSq.length !== 2 || toSq.length !== 2) {
+    return null;
   }
-  let freq = 440; 
-  let waveform: OscillatorType = 'sine';
-  let duration = 0.1;
-  let vol = 0.2;
+  try {
+    const fileMap: { [key: string]: number } = { a: 0, b: 1, c: 2, d: 3, e: 4, f: 5, g: 6, h: 7 };
+    const rankMap: { [key: string]: number } = { '1': 0, '2': 1, '3': 2, '4': 3, '5': 4, '6': 5, '7': 6, '8': 7 };
+    const fromFile = fileMap[fromSq[0]];
+    const fromRank = rankMap[fromSq[1]];
+    const toFile = fileMap[toSq[0]];
+    const toRank = rankMap[toSq[1]];
+    if (fromFile === undefined || fromRank === undefined || toFile === undefined || toRank === undefined) {
+      console.warn(`calculateDistance: Invalid square notation - from: ${fromSq}, to: ${toSq}`);
+      return null;
+    }
+    const dx = toFile - fromFile;
+    const dy = toRank - fromRank;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    return distance;
+  } catch (e) {
+    console.error(`Error calculating distance between ${fromSq} and ${toSq}:`, e);
+    return null;
+  }
+};
 
+const playPieceSound = (pieceSymbol: string | null, distance: number | null = null) => {
+  const functionName = "playPieceSound";
+  const ctx = isAudioContextReady(functionName);
+  if (!ctx) return;
+  let baseFreq = 440, baseDuration = 0.1, baseVol = 0.2;
+  let waveform: OscillatorType = 'sine';
   switch (pieceSymbol) {
-    case 'P': freq = 660; waveform = 'triangle'; duration=0.08; vol=0.15; break;
-    case 'N': freq = 330; waveform = 'sawtooth'; duration=0.12; vol=0.25; break;
-    case 'B': freq = 523; waveform = 'sine'; duration=0.15; vol=0.2; break;
-    case 'R': freq = 261; waveform = 'square'; duration=0.18; vol=0.3; break;
-    case 'Q': freq = 784; waveform = 'sine'; duration=0.25; vol=0.25; break;
-    case 'K': freq = 164; waveform = 'square'; duration=0.3; vol=0.35; break;
-    default: waveform = 'sine'; freq=110; duration=0.05; vol=0.1; break;
+    case 'P': baseFreq = 760; waveform = 'triangle'; baseDuration=0.07; baseVol=0.12; break;
+    case 'N': baseFreq = 300; waveform = 'sawtooth'; baseDuration=0.15; baseVol=0.20; break;
+    case 'B': baseFreq = 587; waveform = 'sine'; baseDuration=0.14; baseVol=0.18; break;
+    case 'R': baseFreq = 240; waveform = 'square'; baseDuration=0.18; baseVol=0.25; break;
+    case 'Q': baseFreq = 880; waveform = 'sine'; baseDuration=0.22; baseVol=0.22; break;
+    case 'K': baseFreq = 150; waveform = 'square'; baseDuration=0.30; baseVol=0.30; break;
+    default: waveform = 'sine'; baseFreq=110; baseDuration=0.05; baseVol=0.1; break;
   }
-  
+  let finalVol = baseVol;
+  let finalDuration = baseDuration;
+  if (distance !== null && distance > 0) {
+      finalVol = Math.min(0.5, baseVol * (1 + distance * 0.05)); 
+      finalDuration = Math.min(0.5, baseDuration + distance * 0.015);
+      console.log(`${functionName}: Adjusted for distance ${distance.toFixed(2)} -> Vol: ${finalVol.toFixed(2)}, Duration: ${finalDuration.toFixed(2)}`);
+  }
+  console.log(`${functionName}: Playing sound for piece: ${pieceSymbol}`);
   try {
     const oscillator = ctx.createOscillator();
     const gainNode = ctx.createGain();
     oscillator.type = waveform;
-    oscillator.frequency.setValueAtTime(freq, ctx.currentTime);
-    gainNode.gain.setValueAtTime(vol, ctx.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+    oscillator.frequency.setValueAtTime(baseFreq, ctx.currentTime);
+    gainNode.gain.setValueAtTime(finalVol, ctx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + finalDuration);
     oscillator.connect(gainNode);
     gainNode.connect(ctx.destination);
     oscillator.start(ctx.currentTime);
-    oscillator.stop(ctx.currentTime + duration);
-  } catch (e) { console.error(`Error playing sound for ${pieceSymbol}:`, e); }
+    oscillator.stop(ctx.currentTime + finalDuration);
+    console.log(`${functionName}: Sound scheduled for ${pieceSymbol}.`);
+  } catch (error) { 
+    console.error(`${functionName}: Error playing sound for ${pieceSymbol}:`, error);
+  }
 };
 
-// New Game Move Sound 
-const playMoveSound = () => {
-  const ctx = getAudioContext();
+const playCheckSound = () => {
+  const functionName = "playCheckSound";
+  const ctx = isAudioContextReady(functionName);
   if (!ctx) return;
+  console.log(`${functionName}: Playing check sound...`);
   try {
     const oscillator = ctx.createOscillator();
     const gainNode = ctx.createGain();
-    oscillator.type = 'square'; // Different waveform
-    oscillator.frequency.setValueAtTime(220, ctx.currentTime); // Lower pitch (A3)
-    gainNode.gain.setValueAtTime(0.2, ctx.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+    oscillator.type = 'square';
+    oscillator.frequency.setValueAtTime(1300, ctx.currentTime);
+    oscillator.frequency.linearRampToValueAtTime(1800, ctx.currentTime + 0.08);
+    gainNode.gain.setValueAtTime(0.15, ctx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
     oscillator.connect(gainNode);
     gainNode.connect(ctx.destination);
     oscillator.start(ctx.currentTime);
-    oscillator.stop(ctx.currentTime + 0.1);
-  } catch (e) { console.error("Error playing move sound:", e); }
-};
-
-// New Check Sound
-const playCheckSound = () => {
-  const ctx = getAudioContext();
-  if (!ctx) return;
-  try {
-    const osc1 = ctx.createOscillator();
-    const osc2 = ctx.createOscillator();
-    const gainNode = ctx.createGain();
-    osc1.type = 'triangle';
-    osc2.type = 'sine';
-    osc1.frequency.setValueAtTime(1200, ctx.currentTime);
-    osc2.frequency.setValueAtTime(1300, ctx.currentTime);
-    gainNode.gain.setValueAtTime(0.25, ctx.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
-    osc1.connect(gainNode);
-    osc2.connect(gainNode);
-    gainNode.connect(ctx.destination);
-    osc1.start(ctx.currentTime);
-    osc1.stop(ctx.currentTime + 0.15);
-    osc2.start(ctx.currentTime);
-    osc2.stop(ctx.currentTime + 0.15);
-  } catch (e) { console.error("Error playing check sound:", e); }
-};
-
-// New Checkmate/Game End Sound
-const playCheckmateSound = () => {
-  const ctx = getAudioContext();
-  if (!ctx) return;
-  try {
-    const osc = ctx.createOscillator();
-    const gainNode = ctx.createGain();
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(100, ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(40, ctx.currentTime + 0.5);
-    gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
-    gainNode.gain.linearRampToValueAtTime(0.001, ctx.currentTime + 0.5);
-    osc.connect(gainNode);
-    gainNode.connect(ctx.destination);
-    osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + 0.5);
-  } catch (e) { console.error("Error playing checkmate sound:", e); }
-};
-
-// New Capture Sound ("Explosion")
-const playCaptureSound = () => {
-  console.log("Playing CAPTURE sound");
-  const ctx = getAudioContext();
-  if (!ctx) {
-    console.warn("Cannot play capture sound: AudioContext not available/running.");
-    return;
+    oscillator.stop(ctx.currentTime + 0.08);
+    console.log(`${functionName}: Check sound scheduled.`);
+  } catch (error) {
+    console.error(`${functionName}: Error during audio processing:`, error);
   }
-  try {
-    const osc = ctx.createOscillator();
-    const gainNode = ctx.createGain();
-    
-    // Low frequency, sawtooth wave for a rougher sound
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(120, ctx.currentTime); // Start low
-    // Quick drop in frequency
-    osc.frequency.exponentialRampToValueAtTime(30, ctx.currentTime + 0.25); 
-
-    // Higher initial volume, quick decay
-    gainNode.gain.setValueAtTime(0.4, ctx.currentTime); // Louder than normal move
-    gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25); 
-
-    osc.connect(gainNode);
-    gainNode.connect(ctx.destination);
-    osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + 0.25);
-  } catch (e) { console.error("Error playing capture sound:", e); }
 };
 
-// Helper function to count pieces on the board
+const playCheckmateSound = () => {
+  const functionName = "playCheckmateSound";
+  const ctx = isAudioContextReady(functionName);
+  if (!ctx) return;
+  console.log(`${functionName}: Playing checkmate/game end sound...`);
+  try {
+    const oscillator = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+    oscillator.type = 'sawtooth';
+    oscillator.frequency.setValueAtTime(600, ctx.currentTime);
+    oscillator.frequency.linearRampToValueAtTime(300, ctx.currentTime + 0.5);
+    gainNode.gain.setValueAtTime(0.25, ctx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+    oscillator.connect(gainNode);
+    gainNode.connect(ctx.destination);
+    oscillator.start(ctx.currentTime);
+    oscillator.stop(ctx.currentTime + 0.5);
+    console.log(`${functionName}: Checkmate sound scheduled.`);
+  } catch (error) {
+    console.error(`${functionName}: Error during audio processing:`, error);
+  }
+};
+
+const playCaptureSound = (distance: number | null = null) => {
+  const functionName = "playCaptureSound";
+  const ctx = isAudioContextReady(functionName);
+  if (!ctx) return;
+  let baseVol = 0.4;
+  let finalVol = baseVol;
+  let baseDuration = 0.15;
+  let finalDuration = baseDuration;
+  if (distance !== null && distance > 0) {
+      finalVol = Math.min(0.7, baseVol * (1 + distance * 0.08)); 
+      finalDuration = Math.min(0.4, baseDuration + distance * 0.02);
+      console.log(`${functionName}: Adjusted for distance ${distance.toFixed(2)} -> Vol: ${finalVol.toFixed(2)}, Duration: ${finalDuration.toFixed(2)}`);
+  }
+  console.log(`${functionName}: Playing capture sound...`);
+  try {
+    const oscillator = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+    oscillator.type = 'square';
+    oscillator.frequency.setValueAtTime(220, ctx.currentTime); 
+    gainNode.gain.setValueAtTime(finalVol, ctx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + finalDuration);
+    oscillator.connect(gainNode);
+    gainNode.connect(ctx.destination);
+    oscillator.start(ctx.currentTime);
+    oscillator.stop(ctx.currentTime + finalDuration);
+    console.log(`${functionName}: Capture sound scheduled.`);
+  } catch (error) {
+    console.error(`${functionName}: Error during audio processing:`, error);
+  }
+};
+
 const countPieces = (board: (Piece | null)[][]): number => {
   return board.flat().filter(piece => piece !== null).length;
 };
-
+// */ // <-- Re-add closing comment tag
 // --- End Sounds ---
 
 const GamePage: React.FC = () => {
@@ -314,13 +307,12 @@ const GamePage: React.FC = () => {
         
         if (data.position) {
           try {
-             // Load the latest position into the chess object
              const loadedGame = new Chess(data.position);
              setGame(loadedGame); 
              setStatusText(getGameStatus(loadedGame));
              // Initialize piece count from game state
-             previousPieceCountRef.current = countPieces(loadedGame.board()); 
-             console.log("Initial piece count:", previousPieceCountRef.current);
+             // previousPieceCountRef.current = countPieces(loadedGame.board()); // Commented out as countPieces is also commented
+             console.log("Initial piece count logic commented out."); // Added log for clarity
           } catch (e) {
               console.error("Error loading FEN from game_state:", data.position, e);
               toast.error("Received invalid board position from server.");
@@ -345,46 +337,55 @@ const GamePage: React.FC = () => {
     socket.on('position', (data: MoveData & { gameId: string }) => {
       if (data.gameId === gameId) {
         console.log('Received position update:', data);
-        let wasCapture = false; // Flag to track if the move was a capture
+        // let wasCapture = false; // Declared inside the commented block now
+        // let distance: number | null = null;
 
         try {
             const updatedGame = new Chess(data.fen);
             
-            // --- Capture Detection ---
-            const currentPieceCount = countPieces(updatedGame.board());
+            // --- Capture Detection --- 
+            /* // Ensure countPieces call is also commented // <-- Remove comment tag // <-- REMOVE THIS COMMENT BLOCK */
+            let wasCapture = false; // Define here if needed outside sound logic
+            const currentPieceCount = countPieces(updatedGame.board()); // This line is commented out // <-- Keep uncommented
             console.log("Current piece count:", currentPieceCount, "Previous:", previousPieceCountRef.current);
             if (previousPieceCountRef.current !== null && currentPieceCount < previousPieceCountRef.current) {
                 wasCapture = true;
                 console.log("Capture detected!");
             }
-            // Update the ref for the next move
             previousPieceCountRef.current = currentPieceCount; 
+            /* // <-- Remove comment tag // <-- REMOVE THIS COMMENT BLOCK */
             // --- End Capture Detection ---
+
+            // --- Calculate Distance --- 
+            /* // calculateDistance call is also commented out // <-- Remove comment tag // <-- REMOVE THIS COMMENT BLOCK */
+            let distance: number | null = null;
+            distance = calculateDistance(data.from_square, data.to_square);
+            /* // <-- Remove comment tag // <-- REMOVE THIS COMMENT BLOCK */
+            // --- End Distance Calculation ---
 
             setGame(updatedGame);
             setMoveHistory(prev => [...prev, data]);
             setStatusText(getGameStatus(updatedGame));
             
-            // --- Sound Logic ---
+            // --- Sound Logic --- 
+            /* // All sound logic commented out // <-- Remove comment tag // <-- Remove this tag again? // <-- Remove this tag again? */ // <-- Keep this start comment
             if (!isMuted) {
               if (updatedGame.isCheckmate()) {
-                 playCheckmateSound();
+                 playCheckmateSound(); // <-- Keep uncommented
               } else if (updatedGame.isCheck()) {
-                 playCheckSound();
-              } else if (wasCapture) { // Play capture sound if detected
-                 playCaptureSound(); 
+                 playCheckSound(); // <-- Keep uncommented
+              } else if (wasCapture) { 
+                 playCaptureSound(distance); // <-- Keep uncommented
               } else {
-                 // Play regular sound based on the moved piece
-                 playPieceSound(data.piece_moved);
+                 playPieceSound(data.piece_moved, distance); // <-- Keep this uncommented
               }
             }
+            /* // <-- Remove comment tag // <-- Remove this tag again? // <-- Remove this tag again? */ // <-- Keep this end comment
             // --- End Sound Logic ---
 
         } catch (e) {
             console.error("Error loading FEN from position update:", data.fen, e);
             toast.error("Received invalid board position update.");
-            // Consider resetting piece count on error?
-            // previousPieceCountRef.current = null; 
         }
       } else { /* ignore */ }
     });
@@ -396,10 +397,12 @@ const GamePage: React.FC = () => {
             setStatusText("Game Ended");
             toast.info("Game has ended");
             // Play end sound if not muted
+            /* // Commented out as playCheckmateSound is also commented // <-- Remove comment tag */ // <-- Remove this start comment
             if (!isMuted) {
-                playCheckmateSound(); // Reuse checkmate sound for game end
+                playCheckmateSound(); // Reuse checkmate sound for game end // <-- Keep uncommented
             }
-             previousPieceCountRef.current = null; // Reset on game end
+            /* // <-- Remove comment tag */ // <-- Remove this end comment
+            previousPieceCountRef.current = null; // Reset on game end
         }
     });
     
@@ -471,8 +474,7 @@ const GamePage: React.FC = () => {
 
   const handleSoundToggle = () => {
     console.log("Sound toggle clicked");
-    // Still play UI click sound regardless of game mute state
-    playClickSound(); 
+    playClickSound();
     setIsMuted(!isMuted);
     toast.info(isMuted ? "Game Sounds ON 🔊" : "Game Sounds OFF 🔇");
   };

@@ -128,18 +128,28 @@ def read_serial_data():
                 
                 # Check if new moves were added and emit them via WebSocket
                 if len(active_game.master_state) > initial_state_len and current_game_id is not None:
-                    for i in range(initial_state_len, len(active_game.master_state)):
+                    # Ensure we only iterate over newly added moves
+                    start_index = initial_state_len
+                    if start_index == 0 and len(active_game.master_state) > 0: 
+                        # If it's the very first position (index 0), don't emit it as a move
+                        start_index = 1
+                        
+                    for i in range(start_index, len(active_game.master_state)):
                         move = active_game.master_state[i]
                         # Emit the position update to connected clients
-                        socketio.emit('position', {
+                        emit_data = {
                             'type': 'position',
                             'gameId': current_game_id,
                             'fen': move.fen,
-                            'moveNumber': i,
+                            'moveNumber': i, 
                             'player': move.player,
                             'algebraic': move.algebraic,
-                            'isLegal': move.is_legal
-                        })
+                            'isLegal': move.is_legal,
+                            'piece_moved': move.piece_moved, # Already added
+                            'from_square': move.from_square, # Add from_square
+                            'to_square': move.to_square     # Add to_square
+                        }
+                        socketio.emit('position', emit_data)
                         print(f"[POSITION EVENT] Emitted position update from read_serial_data for move {i}: {move.algebraic or 'unknown move'} | FEN: {move.fen[:15]}...")
 
             # --- Phase 5: Small sleep --- 
