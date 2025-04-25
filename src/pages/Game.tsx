@@ -82,16 +82,24 @@ const playClickSound = () => {
   console.log("Attempting to play click sound...");
   const ctx = getAudioContext();
 
-  // 1. Check if context is available *first*
+  // Check 1: Is the context available at all?
   if (!ctx) {
-    console.warn("playClickSound: AudioContext not available or not running. Cannot play sound.");
-    // If no context, simply exit the function.
-    return; 
+    console.warn("playClickSound: AudioContext is null or unsupported. Cannot play sound.");
+    return; // Exit function if context cannot be obtained
   }
 
-  // 2. Context is valid, proceed with sound generation inside a try...catch
+  // Check 2: Is the context running?
+  if (ctx.state !== 'running') {
+    console.warn(`playClickSound: AudioContext is not running (state: ${ctx.state}). Attempting resume might be needed via user interaction.`);
+    // We don't try to play sound if not running, as it will likely fail.
+    // Resume is handled by getAudioContext, but might need a user click first.
+    return; // Exit function if context is not running
+  }
+
+  // Context is available and running, proceed with sound generation.
+  console.log(`playClickSound: Context state is '${ctx.state}'. Proceeding with try block.`);
   try {
-    console.log(`playClickSound: Context state is '${ctx.state}'. Creating audio nodes.`);
+    // --- Sound Generation --- 
     const oscillator = ctx.createOscillator();
     const gainNode = ctx.createGain();
 
@@ -107,13 +115,11 @@ const playClickSound = () => {
     oscillator.start(ctx.currentTime);
     oscillator.stop(ctx.currentTime + 0.05);
     console.log("playClickSound: Oscillator scheduled to stop.");
+    // --- End Sound Generation --- 
 
-  } catch (e) {
-    // This block catches errors during node creation or playback attempt
-    console.error("playClickSound: Error during audio node creation/playback:", e);
-  } 
-  // End of try...catch block
-
+  } catch (error) {
+    console.error("playClickSound: Error during audio processing:", error);
+  }
 };
 
 // Placeholder piece sounds
