@@ -77,6 +77,19 @@ const LiveGamesPage: React.FC = () => {
         
         // Request current live games
         socket.emit('get_live_games');
+        
+        // Set up a periodic refresh to check for live games every 5 seconds
+        const refreshInterval = setInterval(() => {
+          if (socket.connected) {
+            socket.emit('get_live_games');
+            addLogEntry("Refreshing live games list...");
+          } else {
+            clearInterval(refreshInterval);
+          }
+        }, 5000);
+        
+        // Store the interval ID for cleanup
+        socket.refreshIntervalId = refreshInterval;
       });
       
       socket.on('live_games_list', (data) => {
@@ -268,9 +281,17 @@ const LiveGamesPage: React.FC = () => {
   
   // Cleanup on unmount
   useEffect(() => {
+    const refreshIntervalId = socketRef.current ? 
+      socketRef.current.refreshIntervalId : null;
+      
     return () => {
       if (socketRef.current) {
         socketRef.current.disconnect();
+      }
+      
+      // Clear the refresh interval if it exists
+      if (refreshIntervalId) {
+        clearInterval(refreshIntervalId);
       }
     };
   }, []);

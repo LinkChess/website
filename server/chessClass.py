@@ -172,10 +172,10 @@ class ChessGame:
             if move_obj is None:
                 print(f"[WARN] Could not determine move for FEN:\n{next_fen}")
                 new_move = ChessMove(
-                    move_id=str(uuid.uuid4()),
-                    fen=next_fen,
-                    player="White" if board_before.turn == chess.WHITE else "Black",
-                    timestamp=datetime.now(),
+                move_id=str(uuid.uuid4()),
+                fen=next_fen,
+                player="White" if board_before.turn == chess.WHITE else "Black",
+                timestamp=datetime.now(),
                     is_legal=False,
                     piece_moved=None
                 )

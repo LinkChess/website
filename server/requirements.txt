@@ -5,3 +5,4 @@ pyserial
 flask-cors
 flask-socketio
 eventlet  # Optional but recommended for better WebSocket performance
+aiohttp   # Needed by socketio.AsyncClient

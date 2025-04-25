@@ -9,6 +9,7 @@ import time
 import uuid
 import json
 from chessClass import ChessGame
+from chessFileReader import ChessFileReader, create_reader
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
@@ -63,7 +64,7 @@ def read_serial_data():
             # --- Phase 2: Decode and Validate collected raw lines --- 
             processed_any_line = False # Did we attempt to process anything?
             if raw_lines_read:
-                print(f"Decoding and validating {len(raw_lines_read)} lines read from serial.")
+                print(f"Decoding and validating {len(raw_lines_read)} lines read from {'file' if isinstance(serial_connection, ChessFileReader) else 'serial'}.")
                 for raw_line in raw_lines_read:
                     processed_any_line = True
                     try:
@@ -141,13 +142,13 @@ def read_serial_data():
                             'type': 'position',
                             'gameId': current_game_id,
                             'fen': move.fen,
-                            'moveNumber': i, 
+                            'moveNumber': i,
                             'player': move.player,
                             'algebraic': move.algebraic,
                             'isLegal': move.is_legal,
                             'piece_moved': move.piece_moved, # Already added
-                            'from_square': move.from_square, # Add from_square
-                            'to_square': move.to_square     # Add to_square
+                            'from_square': move.from_square if hasattr(move, 'from_square') else None, # Add from_square if available
+                            'to_square': move.to_square if hasattr(move, 'to_square') else None     # Add to_square if available
                         }
                         socketio.emit('position', emit_data)
                         print(f"[POSITION EVENT] Emitted position update from read_serial_data for move {i}: {move.algebraic or 'unknown move'} | FEN: {move.fen[:15]}...")
@@ -306,20 +307,20 @@ def handle_end_game(data):
 
 @socketio.on('connect_hardware')
 def handle_connect_hardware(data):
-    """Connect to hardware via serial port"""
+    """Connect to hardware via serial port or moves.txt file"""
     global serial_connection, serial_thread, active_game, stop_thread
     
     try:
         if not data or 'port' not in data:
             emit('error', {'message': 'Port is required'})
             return
-            
+
         port = data['port']
         baud_rate = data.get('baudRate', 115200)
         
         # Check if already connected
         if serial_connection and serial_connection.is_open:
-            emit('error', {'message': f'Already connected to {serial_connection.port}. Disconnect first.'})
+            emit('error', {'message': f'Already connected to {getattr(serial_connection, "port", "file")}. Disconnect first.'})
             return
         
         # Special case for mock connections (used in testing)
@@ -340,6 +341,37 @@ def handle_connect_hardware(data):
                 'port': port
             })
             return
+        
+        # Special case for file-based connection
+        if port == 'FILE' or port.endswith('.txt'):
+            file_path = data.get('file_path', 'moves.txt')
+            if port != 'FILE':
+                file_path = port  # Use the port as file path
+                
+            print(f"Using file-based connection from {file_path}")
+            serial_connection = create_reader(file_path)
+            
+            # Start reading thread
+            stop_thread = False
+            serial_thread = threading.Thread(target=read_serial_data)
+            serial_thread.daemon = True
+            serial_thread.start()
+            
+            # Emit connection successful event
+            emit('hardware_connected', {
+                'status': 'connected',
+                'port': f'FILE:{file_path}',
+                'message': f'Connected to file {file_path}'
+            })
+            
+            # Also broadcast to all clients
+            socketio.emit('hardware_status', {
+                'status': 'connected',
+                'port': f'FILE:{file_path}'
+            })
+            
+            print(f"Connected to file at {file_path}")
+            return
             
         # Connect to serial port
         serial_connection = serial.Serial(port, baud_rate, timeout=1)
@@ -348,8 +380,7 @@ def handle_connect_hardware(data):
         stop_thread = False
         serial_thread = threading.Thread(target=read_serial_data)
         serial_thread.daemon = True
-        # serial_thread.start() # TEMPORARILY COMMENTED OUT
-        print(f"--- Serial reading thread NOT started (Commented out in handle_connect_hardware) ---") # Added log
+        serial_thread.start()
         
         emit('hardware_connected', {
             'status': 'connected',
@@ -412,8 +443,12 @@ def handle_disconnect_hardware():
         if serial_thread and serial_thread.is_alive():
             serial_thread.join(2.0)  # Wait up to 2 seconds
             
+        # Get port or file info for messaging
+        connection_info = getattr(serial_connection, 'port', 'file')
+        if isinstance(serial_connection, ChessFileReader):
+            connection_info = f"FILE:{serial_connection.file_path}"
+            
         # Close the connection
-        port = serial_connection.port
         serial_connection.close()
         serial_connection = None
         
@@ -424,16 +459,16 @@ def handle_disconnect_hardware():
             
         emit('hardware_disconnected', {
             'status': 'disconnected',
-            'message': f'Disconnected from {port}'
+            'message': f'Disconnected from {connection_info}'
         })
         
         # Also broadcast to all clients
         socketio.emit('hardware_status', {
             'status': 'disconnected',
-            'port': port
+            'port': connection_info
         })
         
-        print(f"Disconnected from hardware on port {port}")
+        print(f"Disconnected from {connection_info}")
         
     except Exception as e:
         emit('error', {'message': f'Error: {str(e)}'})
@@ -511,6 +546,7 @@ def handle_get_game_state(data):
 @socketio.on('simulate_hardware_input')
 def handle_simulate_hardware_input(data):
     """Simulate hardware input by handling a FEN string directly from a client FOR A SPECIFIC GAME"""
+    global active_game, current_game_id
     try:
         if 'fen' not in data or 'gameId' not in data:
             emit('error', {'message': 'FEN string and gameId are required'})
@@ -524,12 +560,35 @@ def handle_simulate_hardware_input(data):
         
         if not target_game:
             # Maybe check the global active_game as a fallback?
-            global active_game, current_game_id
             if game_id == current_game_id and active_game:
                 target_game = active_game
             else:
                  emit('error', {'message': f'Game with ID {game_id} not found or not active.'})
                  return
+                 
+        # Update current_game_id if not set - this ensures the game shows up in live games list
+        if current_game_id is None:
+            current_game_id = game_id
+            # Broadcast new game event if this is a newly active game
+            socketio.emit('new_game', {
+                'type': 'new_game',
+                'game': {
+                    'id': game_id,
+                    'title': target_game.event,
+                    'players': {
+                        'white': target_game.white,
+                        'black': target_game.black
+                    },
+                    'status': 'active',
+                    'lastUpdate': time.time() * 1000,  # milliseconds since epoch
+                    'currentPosition': target_game.master_state[0].fen,
+                    'moveCount': len(target_game.master_state) - 1,  # Subtract 1 for initial state
+                    'viewerCount': len(connected_clients)
+                }
+            })
+            # Set as active game if not already
+            if target_game != active_game:
+                active_game = target_game
             
         print(f"Simulated hardware input for game {game_id}: {fen}")
         
@@ -564,6 +623,39 @@ def handle_simulate_hardware_input(data):
     except Exception as e:
         print(f"Error processing simulated input: {str(e)}")
         emit('error', {'message': f'Error: {str(e)}'})
+
+@socketio.on('get_raw_board_state')
+def handle_get_raw_board_state():
+    """Read the last FEN from input file and return only the board state portion"""
+    try:
+        # Default file path, could be made configurable
+        file_path = 'moves.txt'
+        
+        # Read the last line from the file
+        last_fen = ""
+        try:
+            with open(file_path, 'r') as f:
+                lines = f.readlines()
+                if lines:
+                    last_fen = lines[-1].strip()
+        except Exception as e:
+            print(f"Error reading file: {str(e)}")
+            emit('raw_board_state', {'status': 'error', 'message': f'Error reading file: {str(e)}'})
+            return
+        
+        # Extract only the board state part (before the first space)
+        board_state = last_fen.split(' ')[0] if last_fen else ""
+        
+        # Send the board state to the client
+        emit('raw_board_state', {
+            'status': 'success',
+            'boardState': board_state
+        })
+        print(f"Sent raw board state: {board_state}")
+        
+    except Exception as e:
+        print(f"Error getting raw board state: {str(e)}")
+        emit('raw_board_state', {'status': 'error', 'message': str(e)})
 
 # REST API routes (keeping these for compatibility)
 @app.route('/games', methods=['POST'])

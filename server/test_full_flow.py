@@ -88,6 +88,9 @@ def on_game_state(data):
 def hardware_simulator():
     logger.info("Starting hardware simulator...")
     
+    # Use the global test_game_id
+    global current_game_id
+    
     # Wait for hardware connection and game to start
     retry_count = 0
     while not (hardware_connected and game_started) and retry_count < 10:
@@ -110,7 +113,7 @@ def hardware_simulator():
         
         # In a real scenario, this would be the hardware sending serial data
         # Instead, we directly invoke the position event on the server
-        sio.emit('simulate_hardware_input', {'fen': fen})
+        sio.emit('simulate_hardware_input', {'fen': fen, 'gameId': current_game_id})
         
         # Wait between moves
         time.sleep(2)
@@ -131,9 +134,10 @@ def main():
         time.sleep(1)
         
         # Start a test game
-        logger.info("Starting a test game...")
+        test_game_id = f'test-game-{datetime.now().strftime("%Y%m%d%H%M%S")}'
+        logger.info("Starting a test game with ID: %s...", test_game_id)
         sio.emit('start_game', {
-            'id': f'test-game-{datetime.now().strftime("%Y%m%d%H%M%S")}',
+            'id': test_game_id,
             'title': 'ChessLink Full Flow Test',
             'white': 'Player 1',
             'black': 'Player 2'

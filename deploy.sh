@@ -20,10 +20,22 @@ cat > server-setup.sh << 'EOL'
 #!/bin/bash
 set -e
 
-echo ">>> Installing prerequisites using dnf..."
-# No equivalent of apt-get update needed before install usually
+echo ">>> Installing prerequisites using dnf (including Python 3.9)..."
 # dnf check-update can be run manually if needed
-dnf install -y nginx python3 python3-pip python3-devel gcc curl
+# Install base tools, nginx, and the python39 module + devel for building packages
+dnf install -y nginx python3-pip python3-devel gcc curl # Keep base python3 tools just in case
+dnf module install -y python39 # Removed python39-devel
+
+# Check Python version
+PYTHON_VERSION_DEFAULT=$(python3 -c 'import sys; print("{}.{}".format(sys.version_info.major, sys.version_info.minor))')
+PYTHON_VERSION_39=$(python3.9 -c 'import sys; print("{}.{}".format(sys.version_info.major, sys.version_info.minor))')
+echo ">>> Default Python version: $PYTHON_VERSION_DEFAULT"
+echo ">>> Python 3.9 version: $PYTHON_VERSION_39"
+
+if [[ "$PYTHON_VERSION_39" < "3.7" ]]; then
+  echo "ERROR: Installed Python 3.9 module version ($PYTHON_VERSION_39) is unexpectedly less than 3.7!"
+  exit 1
+fi
 
 # --- Nginx Configuration ---
 echo ">>> Configuring Nginx..."
@@ -42,7 +54,7 @@ server {
     server_name chesslink.site www.chesslink.site; # Add www if needed
 
     # Consider adding HTTPS configuration here later (listen 443 ssl...)
-
+    
     root /var/www/chesslink.site;
     index index.html index.htm;
 
@@ -59,7 +71,7 @@ server {
         add_header Cache-Control "public, max-age=2592000";
         access_log off;
     }
-
+    
     # WebSocket Proxy for Socket.IO
     location /socket.io/ {
         proxy_pass http://localhost:8765; # Point to the backend Flask-SocketIO server
@@ -74,30 +86,34 @@ server {
 }
 CONF
 
-# Enable the site if using sites-available/sites-enabled pattern
+  # Enable the site if using sites-available/sites-enabled pattern
 if [ -n "$NGINX_ENABLED_PATH" ] && [ ! -L "$NGINX_ENABLED_PATH" ]; then
     ln -sf "$NGINX_CONF_PATH" "$NGINX_ENABLED_PATH"
 fi
 
 # --- Backend Setup ---
-echo ">>> Setting up Python backend..."
+echo ">>> Setting up Python backend using Python 3.9..."
 BACKEND_DIR="/opt/chesslink-backend"
 VENV_DIR="$BACKEND_DIR/venv"
 
 # Create backend directory if it doesn't exist
 mkdir -p "$BACKEND_DIR"
-# Change ownership if needed, consider a non-root user later
-# chown -R deploy_user:deploy_user "$BACKEND_DIR"
 
-echo "Creating Python virtual environment at $VENV_DIR..."
-python3 -m venv "$VENV_DIR"
+# Remove old venv if it exists from previous failed attempts
+rm -rf "$VENV_DIR"
 
-echo "Installing Python dependencies from requirements.txt..."
-# Use --break-system-packages if needed on newer Debian/Ubuntu pip
+echo "Creating Python virtual environment at $VENV_DIR using python3.9..."
+python3.9 -m venv "$VENV_DIR"
+
+echo "Installing Python dependencies from requirements.txt into Python 3.9 venv..."
+# Activate venv to ensure pip and python are the correct ones, though explicit paths are safer
+# source "$VENV_DIR/bin/activate" # Optional activation
 "$VENV_DIR/bin/pip" install --upgrade pip
 "$VENV_DIR/bin/pip" install -r "$BACKEND_DIR/requirements.txt"
+# deactivate # Optional deactivation
 
-echo "Creating systemd service file for the backend..."
+echo "Creating systemd service file for the backend (using venv python)..."
+# The ExecStart path automatically uses the python version the venv was created with
 cat > /etc/systemd/system/chesslink-backend.service << 'SERVICE'
 [Unit]
 Description=ChessLink Backend Service
@@ -107,10 +123,9 @@ After=network.target
 User=root # Consider running as a non-root user for security
 Group=root # Consider running as a non-root user for security
 WorkingDirectory=/opt/chesslink-backend
-# Ensure the path to python and app.py is correct
-ExecStart=/opt/chesslink-backend/venv/bin/python app.py
+ExecStart=/opt/chesslink-backend/venv/bin/python app.py # This python is from the venv (Python 3.9)
 Restart=always
-Environment="PYTHONUNBUFFERED=1" # Ensures logs appear immediately
+Environment="PYTHONUNBUFFERED=1"
 
 [Install]
 WantedBy=multi-user.target
@@ -129,7 +144,7 @@ if [ -d "$WEB_ROOT" ]; then
   echo "Setting ownership for $WEB_ROOT to $NGINX_USER..."
   # Ensure the directory exists before changing ownership
   mkdir -p "$WEB_ROOT"
-  chown -R "$NGINX_USER":"$NGINX_USER" "$WEB_ROOT"
+    chown -R "$NGINX_USER":"$NGINX_USER" "$WEB_ROOT"
   echo "Setting file permissions..."
   find "$WEB_ROOT" -type d -exec chmod 755 {} \;
   find "$WEB_ROOT" -type f -exec chmod 644 {} \;
@@ -179,8 +194,25 @@ ssh -p 22 "$SERVER" "mkdir -p $BACKEND_DEST_DIR $FRONTEND_DEST_DIR"
 echo "Uploading frontend files (dist/*) to $FRONTEND_DEST_DIR ..."
 scp -P 22 -r dist/* "$SERVER:$FRONTEND_DEST_DIR/"
 
-echo "Uploading backend files (server/*) to $BACKEND_DEST_DIR ..."
-scp -P 22 -r server/* "$SERVER:$BACKEND_DEST_DIR/"
+echo "Uploading backend files (server/* excluding venv) to $BACKEND_DEST_DIR ..."
+# First clean any existing server directory to prevent conflicts with venv
+ssh -p 22 "$SERVER" "rm -rf $BACKEND_DEST_DIR/* && mkdir -p $BACKEND_DEST_DIR"
+
+# Create a temporary directory for filtered files
+TMP_DIR=$(mktemp -d)
+echo "Created temporary directory: $TMP_DIR"
+
+# Copy server files to temp directory excluding venv
+cp -r server/* "$TMP_DIR/"
+rm -rf "$TMP_DIR/venv" 2>/dev/null || true
+rm -rf "$TMP_DIR/__pycache__" 2>/dev/null || true
+find "$TMP_DIR" -name "*.pyc" -delete 2>/dev/null || true
+
+# Upload filtered content
+scp -P 22 -r "$TMP_DIR"/* "$SERVER:$BACKEND_DEST_DIR/"
+
+# Clean up temporary directory
+rm -rf "$TMP_DIR"
 
 echo "Uploading and running server setup script..."
 scp -P 22 server-setup.sh "$SERVER:~/"

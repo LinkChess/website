@@ -17,7 +17,7 @@ from chessClass import ChessGame
 import chess
 
 # Server address (python-socketio uses http/https)
-SERVER_URI = "http://localhost:8765"
+SERVER_URI = "http://127.0.0.1:8765"
 
 # Use asyncio events for flow control
 host_connected_event = asyncio.Event()
@@ -67,16 +67,16 @@ async def host_wait_for_event(timeout=5):
 sio_spectator = socketio.AsyncClient(logger=False, engineio_logger=False)
 
 @sio_spectator.event
-async def connect():
+async def spectator_connect():
     print("Spectator client: Connection established")
     spectator_connected_event.set()
 
 @sio_spectator.event
-async def connect_error(data):
+async def spectator_connect_error(data):
     print(f"Spectator client: Connection failed: {data}")
 
 @sio_spectator.event
-async def disconnect():
+async def spectator_disconnect():
     print("Spectator client: Disconnected from server")
 
 @sio_spectator.on('*') # Catch all events
@@ -136,7 +136,7 @@ async def host_client_logic():
         print("\nHost: Connecting to hardware (MOCK)...")
         await sio.emit("connect_hardware", {"port": "MOCK"})
         await host_wait_for_event() # Wait for hardware_connected/status
-
+            
         # Step 4: Start a game
         print(f"\nHost: Starting a new game ({game_id_to_simulate})...")
         await sio.emit("start_game", {
@@ -146,6 +146,11 @@ async def host_client_logic():
             "black": "SimulatorOpponent"
         })
         await host_wait_for_event() # Wait for game_started/new_game
+        
+        # Step 5: Request live games to verify our game appears
+        print("\nHost: Getting live games list...")
+        await sio.emit("get_live_games")
+        await host_wait_for_event() # Wait for live_games_list response
 
         # Step 6: Simulate sending FEN updates for the moves
         print("\nHost: Simulating game moves...")
@@ -165,13 +170,18 @@ async def host_client_logic():
                 break # Stop simulation on error
 
         print("\nHost: Move simulation finished.")
-        await asyncio.sleep(2) # Pause before ending
-
+        await asyncio.sleep(2)
+        
+        # Request live games again to verify our game is still visible
+        print("\nHost: Getting final live games list...")
+        await sio.emit("get_live_games")
+        await host_wait_for_event() # Wait for live_games_list response
+            
         # Step 7: End the game
         print("\nHost: Ending the game...")
         await sio.emit("end_game", {"gameId": game_id_to_simulate})
         await host_wait_for_event() # Wait for game_ended
-
+            
         # Step 8: Disconnect hardware
         print("\nHost: Disconnecting hardware (MOCK)...")
         await sio.emit("disconnect_hardware")
@@ -199,13 +209,13 @@ async def spectator_client_logic(game_id="test-game-123"):
         # Wait for connection confirmation
         await asyncio.wait_for(spectator_connected_event.wait(), timeout=5)
         await spectator_wait_for_event() # Wait for initial hardware_status
-
+            
         # Step 2: Get list of live games (optional, server might push)
         # print("\nSpectator: Getting list of live games...")
         # await sio_spectator.emit("get_live_games")
         # await spectator_wait_for_event() # Wait for live_games_list
-
-        # Step 3: Get state of specific game
+            
+            # Step 3: Get state of specific game
         print(f"\nSpectator: Getting state of game {game_id}...")
         await sio_spectator.emit("get_game_state", {"gameId": game_id})
         await spectator_wait_for_event() # Wait for game_state
@@ -267,20 +277,37 @@ if __name__ == "__main__":
     print("ChessLink WebSocket Client Test (using python-socketio)")
     print(f"Attempting to connect to server at: {SERVER_URI}")
     print("Press Ctrl+C to exit")
+    
+    # List games from DB first (Python 3.6 compatible)
+    db_loop = asyncio.get_event_loop()
+    try:
+        db_loop.run_until_complete(list_db_games())
+    finally:
+        # Close the loop only if it's running to avoid errors on exit
+        if db_loop.is_running():
+            db_loop.close()
 
-    # List games from DB first
-    asyncio.run(list_db_games())
-
-    # Check command line arguments
-    if len(sys.argv) > 1:
-        if sys.argv[1] == "host":
-            asyncio.run(host_client_logic())
-        elif sys.argv[1] == "spectator":
-            game_id_arg = sys.argv[2] if len(sys.argv) > 2 else "test-game-123"
-            asyncio.run(spectator_client_logic(game_id_arg))
+    # --- Main execution logic with Python 3.6 compatible asyncio ---
+    main_loop = asyncio.get_event_loop() 
+    try:
+        # Check command line arguments
+        if len(sys.argv) > 1:
+            if sys.argv[1] == "host":
+                print("\n--- Running Host Client Logic Only ---")
+                main_loop.run_until_complete(host_client_logic())
+            elif sys.argv[1] == "spectator":
+                game_id_arg = sys.argv[2] if len(sys.argv) > 2 else "test-game-123"
+                print(f"\n--- Running Spectator Client Logic Only (Game ID: {game_id_arg}) ---")
+                main_loop.run_until_complete(spectator_client_logic(game_id_arg))
+            else:
+                print(f"Unknown argument: {sys.argv[1]}")
+                print("Usage: python testWebSocket.py [host|spectator [game_id]]")
         else:
-            print(f"Unknown argument: {sys.argv[1]}")
-            print("Usage: python testWebSocket.py [host|spectator [game_id]]")
-    else:
-        # Run all tests
-        asyncio.run(run_all_tests()) 
+            # Run all tests concurrently
+            print("\n--- Running Host and Spectator Concurrently ---")
+            main_loop.run_until_complete(run_all_tests())
+    finally:
+        print("Closing main event loop.")
+        # Close the loop only if it's running to avoid errors on exit
+        if main_loop.is_running():
+            main_loop.close() 

@@ -10,6 +10,126 @@ import { ArrowLeft, Expand, Volume2, VolumeX, Mic, MicOff } from "lucide-react";
 import { toast } from "sonner";
 import { io, Socket } from "socket.io-client";
 
+// Safe Chessboard wrapper component to handle invalid FENs
+const SafeChessboard: React.FC<{
+  position: string;
+  boardWidth: number;
+  areArrowsAllowed: boolean;
+  rawBoardState?: string | null;
+}> = ({ position, boardWidth, areArrowsAllowed, rawBoardState }) => {
+  const [safePosition, setSafePosition] = useState("start");
+  const [isUsingFallback, setIsUsingFallback] = useState(false);
+  
+  // When position prop changes, try to update safely
+  useEffect(() => {
+    try {
+      // Validate FEN by attempting to create a Chess instance
+      new Chess(position);
+      setSafePosition(position);
+      setIsUsingFallback(false);
+    } catch (e) {
+      console.warn("SafeChessboard: Invalid FEN position", position, e);
+      // If we have a raw board state, use it directly
+      if (rawBoardState) {
+        setIsUsingFallback(true);
+      } else {
+        // Otherwise keep using previous valid position (or default "start")
+        setIsUsingFallback(false);
+      }
+    }
+  }, [position, rawBoardState]);
+  
+  // Parse raw board state for fallback display
+  const renderRawBoard = () => {
+    if (!rawBoardState) return null;
+    
+    // Split the FEN board representation into ranks
+    const ranks = rawBoardState.split('/');
+    if (ranks.length !== 8) {
+      console.warn("Invalid raw board state format, expected 8 ranks:", rawBoardState);
+    }
+    
+    return (
+      <div className="chess-board" style={{width: boardWidth, height: boardWidth}}>
+        {ranks.map((rank, rankIndex) => {
+          const squares = [];
+          let fileIndex = 0;
+          
+          // Process each character in the rank
+          for (let i = 0; i < rank.length; i++) {
+            const char = rank[i];
+            
+            // If it's a number, add that many empty squares
+            if (/\d/.test(char)) {
+              const emptyCount = parseInt(char, 10);
+              for (let j = 0; j < emptyCount; j++) {
+                squares.push({
+                  key: `${rankIndex}-${fileIndex}`,
+                  piece: null,
+                  isLight: (rankIndex + fileIndex) % 2 === 0,
+                  position: fileIndex
+                });
+                fileIndex++;
+              }
+            } else {
+              // Add a piece square
+              squares.push({
+                key: `${rankIndex}-${fileIndex}`,
+                piece: char,
+                isLight: (rankIndex + fileIndex) % 2 === 0,
+                position: fileIndex
+              });
+              fileIndex++;
+            }
+          }
+          
+          return (
+            <div key={rankIndex} className="rank" style={{
+              display: 'flex', 
+              height: `${boardWidth/8}px`
+            }}>
+              {squares.map(square => (
+                <div key={square.key} style={{
+                  width: `${boardWidth/8}px`,
+                  height: `${boardWidth/8}px`,
+                  backgroundColor: square.isLight ? '#f0d9b5' : '#b58863',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: `${boardWidth/16}px`
+                }}>
+                  {square.piece && (
+                    <span style={{color: /[A-Z]/.test(square.piece) ? 'white' : 'black'}}>
+                      {mapPieceToUnicode(square.piece)}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+  
+  // Map chess piece character to Unicode chess symbol
+  const mapPieceToUnicode = (piece: string) => {
+    const map: Record<string, string> = {
+      'p': '♟', 'n': '♞', 'b': '♝', 'r': '♜', 'q': '♛', 'k': '♚',
+      'P': '♙', 'N': '♘', 'B': '♗', 'R': '♖', 'Q': '♕', 'K': '♔'
+    };
+    return map[piece] || piece;
+  };
+  
+  return isUsingFallback && rawBoardState ? renderRawBoard() : (
+    <Chessboard
+      position={safePosition}
+      boardWidth={boardWidth}
+      areArrowsAllowed={areArrowsAllowed}
+    />
+  );
+};
+
 // Interface for move data from backend
 interface MoveData {
   move_id: string;
@@ -263,12 +383,24 @@ const GamePage: React.FC = () => {
   const socketRef = useRef<Socket | null>(null);
   const [statusText, setStatusText] = useState("Connecting...");
   
+  // Add new state for raw board FEN
+  const [rawBoardState, setRawBoardState] = useState<string | null>(null);
+  const fetchIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  
   // State for new buttons
   const [isMuted, setIsMuted] = useState(false);
   const [isMicOn, setIsMicOn] = useState(false);
   const boardContainerRef = useRef<HTMLDivElement>(null); // Keep ref definition
   // Ref to store the piece count of the previous position
   const previousPieceCountRef = useRef<number | null>(null);
+
+  // Function to fetch raw board state
+  const fetchRawBoardState = () => {
+    if (socketRef.current && isConnected) {
+      console.log("Requesting raw board state");
+      socketRef.current.emit('get_raw_board_state');
+    }
+  };
 
   useEffect(() => {
     if (!gameId) {
@@ -300,8 +432,21 @@ const GamePage: React.FC = () => {
       toast.success("Connected! Requesting game state...");
       // Request the specific game state
       socket.emit('get_game_state', { gameId });
+      // Initial fetch of raw board state
+      fetchRawBoardState();
       // Reset piece count on new connection/state fetch
       previousPieceCountRef.current = null; 
+    });
+
+    // Add handler for raw board state response
+    socket.on('raw_board_state', (data: { status: string, boardState?: string, message?: string }) => {
+      console.log('Received raw_board_state:', data);
+      if (data.status === 'success' && data.boardState) {
+        setRawBoardState(data.boardState);
+      } else if (data.status === 'error') {
+        console.error('Error fetching raw board state:', data.message);
+        // Don't show toast for this error to avoid spam
+      }
     });
 
     socket.on('game_state', (data: GameStateData) => {
@@ -359,7 +504,7 @@ const GamePage: React.FC = () => {
             if (previousPieceCountRef.current !== null && currentPieceCount < previousPieceCountRef.current) {
                 wasCapture = true;
                 console.log("Capture detected!");
-            }
+      }
             previousPieceCountRef.current = currentPieceCount; 
             /* // <-- Remove comment tag // <-- REMOVE THIS COMMENT BLOCK */
             // --- End Capture Detection ---
@@ -423,7 +568,7 @@ const GamePage: React.FC = () => {
       socketRef.current = null;
       previousPieceCountRef.current = null; // Reset count
     });
-
+          
     // Handle disconnection
     socket.on('disconnect', () => {
       console.log('Disconnected from WebSocket server.');
@@ -439,7 +584,7 @@ const GamePage: React.FC = () => {
         console.error('Server Error:', data.message);
         toast.error(`Server error: ${data.message}`);
     });
-
+    
     // Cleanup on component unmount
     return () => {
       console.log('Disconnecting socket...');
@@ -447,9 +592,60 @@ const GamePage: React.FC = () => {
       socketRef.current = null;
       toast.info("Left game view");
       previousPieceCountRef.current = null; // Reset count
+      
+      // Clear the fetch interval
+      if (fetchIntervalRef.current) {
+        clearInterval(fetchIntervalRef.current);
+        fetchIntervalRef.current = null;
+      }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameId]); // REMOVED isMuted dependency
+
+  // Set up periodic fetching of raw board state
+  useEffect(() => {
+    if (isConnected) {
+      // Initial fetch
+      fetchRawBoardState();
+      
+      // Set up interval for periodic fetching (every 2 seconds)
+      fetchIntervalRef.current = setInterval(fetchRawBoardState, 2000);
+      
+      return () => {
+        if (fetchIntervalRef.current) {
+          clearInterval(fetchIntervalRef.current);
+          fetchIntervalRef.current = null;
+        }
+      };
+    }
+  }, [isConnected]);
+
+  // Function to create a valid FEN from the raw board state
+  const createFenFromRawBoard = (rawBoard: string): string => {
+    // Add missing parts of FEN to make it valid for chess.js
+    // Default to white's turn, no castling rights, no en passant
+    return `${rawBoard} w - - 0 1`;
+  };
+
+  // Function to get the board position to display
+  const getBoardPosition = (): string => {
+    if (rawBoardState) {
+      try {
+        // Convert raw board state to valid FEN - will be used only for display
+        const validFen = createFenFromRawBoard(rawBoardState);
+        // Try to validate with chess.js
+        new Chess(validFen);
+        return validFen;
+      } catch (e) {
+        console.warn("Invalid board state FEN:", rawBoardState, e);
+        // For invalid FENs, still return it for display purposes
+        // Add valid FEN parts to make react-chessboard happy
+        return createFenFromRawBoard(rawBoardState);
+      }
+    }
+    // Fall back to the game's FEN if no raw board state
+    return game.fen();
+  };
 
   // Function to get game status text from a Chess instance
   const getGameStatus = (board: Chess) => {
@@ -504,8 +700,8 @@ const GamePage: React.FC = () => {
              Back to Live Games
           </Button>
           <div className="text-center">
-            <h1 className="text-3xl font-bold">{gameTitle}</h1>
-        <p className="text-muted-foreground">Game ID: {gameId}</p>
+            <h1 className="text-3xl font-bold">Live Game</h1>
+        {/* <p className="text-muted-foreground">Game ID: {gameId}</p> */}
             <div className="mt-2 flex justify-center items-center gap-2 flex-wrap">
               <Badge variant={isLive ? "default" : "outline"} className={isLive ? "bg-green-600" : "bg-gray-500"}>
                 {isLive ? "Live" : "Ended"}
@@ -523,7 +719,7 @@ const GamePage: React.FC = () => {
         
         {/* Left Column: Game Info */}
         <div className="md:col-span-1">
-          <Card>
+          {/* <Card>
             <CardHeader>
               <CardTitle>Game Information</CardTitle>
             </CardHeader>
@@ -549,12 +745,12 @@ const GamePage: React.FC = () => {
                 </div>
               </div>
             </CardContent>
-          </Card>
+          </Card> */}
           
           <div className="mt-6"></div>
         
           {/* Live Insights Card (Placeholder) */}
-          <Card>
+          {/* <Card>
             <CardHeader>
               <CardTitle>Live Insights</CardTitle>
               <CardDescription>AI-powered analysis (coming soon!)</CardDescription>
@@ -566,10 +762,9 @@ const GamePage: React.FC = () => {
                  <p>🤔 Black's last move (a6) creates space but weakens b6.</p>
                  <p>⚡ Tempo is currently with White.</p>
                  <p>📊 Material balance looks even</p>
-                 {/* Add more dummy insights */}
               </div>
             </CardContent>
-          </Card>
+          </Card> */}
         </div>
 
         {/* Center Column: Chessboard + Controls */}
@@ -577,14 +772,21 @@ const GamePage: React.FC = () => {
           <Card className="flex-grow" ref={boardContainerRef}> 
             <CardContent className="p-2 sm:p-4 flex justify-center items-center h-full"> 
               <div className="max-w-[560px] w-full bg-white"> 
-                <Chessboard 
-                  position={game.fen()} 
+                <SafeChessboard 
+                  position={getBoardPosition()} 
                   boardWidth={560} 
                   areArrowsAllowed={false}
+                  rawBoardState={rawBoardState}
                 />
               </div>
             </CardContent>
           </Card>
+          {/* Raw Board State Display */}
+          {rawBoardState && (
+            <div className="mt-2 p-2 text-xs text-center bg-gray-100 rounded">
+              <span className="font-mono">Raw Board: {rawBoardState}</span>
+            </div>
+          )}
           {/* Control Buttons Below Board */}
           <div className="flex justify-center items-center gap-3 mt-4 p-2 bg-gray-100 rounded-md">
              <Button variant="outline" size="icon" onClick={handleExpandClick} title="Toggle Fullscreen">
@@ -611,7 +813,7 @@ const GamePage: React.FC = () => {
         <div className="md:col-span-1 space-y-6">
           
           {/* Move history Card */}
-          <Card>
+          {/* <Card>
             <CardHeader>
               <CardTitle>Move History</CardTitle>
             </CardHeader>
@@ -646,7 +848,7 @@ const GamePage: React.FC = () => {
                 )}
               </div>
             </CardContent>
-          </Card>
+          </Card> */}
           
         </div>
         
