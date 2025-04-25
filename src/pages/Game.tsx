@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Chessboard } from "react-chessboard";
-import { Chess, Move } from "chess.js";
+import { Chess, Move, Piece } from "chess.js";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -19,6 +19,7 @@ interface MoveData {
   algebraic: string | null;
   uci: string | null;
   is_legal: boolean | null;
+  piece_moved: string | null;
 }
 
 // Interface for game state data from backend
@@ -34,59 +35,220 @@ interface GameStateData {
   moves?: MoveData[]; 
 }
 
-// --- Web Audio API Click Sound --- 
+// --- Web Audio API Sounds --- 
 let audioContext: AudioContext | null = null;
-const playClickSound = () => {
-  console.log("playClickSound called"); // Log entry
-  try {
-    // Ensure AudioContext is initialized (usually best after first user gesture)
-    if (!audioContext) {
+
+// Function to initialize/resume AudioContext safely
+const getAudioContext = (): AudioContext | null => {
+  // 1. Initialize if needed
+  if (!audioContext) {
+    try {
       console.log("Initializing AudioContext...");
       audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
       console.log("AudioContext state after init:", audioContext?.state);
+      // Add event listener for state change to handle resume automatically after user interaction
+      audioContext.onstatechange = () => {
+        console.log("AudioContext state changed:", audioContext?.state);
+      };
+    } catch (e) {
+      console.error("Web Audio API is not supported in this browser", e);
+      return null; // Return null if initialization fails
     }
-    
-    // If context exists but is suspended, try resuming it
-    if (audioContext && audioContext.state === 'suspended') {
-      console.log("AudioContext suspended, attempting resume...");
-      audioContext.resume().then(() => {
-        console.log("AudioContext resumed successfully.");
-        // Optionally try playing sound again *after* resume, but for a simple click, 
-        // resuming might be enough for the *next* click.
-      }).catch(e => console.error("Error resuming AudioContext:", e));
-      // Don't try to play sound immediately after resume, might not work yet.
-      return; 
-    }
+  }
 
-    if (!audioContext || audioContext.state !== 'running') {
-       console.warn("AudioContext not running or not available. State:", audioContext?.state);
-       return;
-    }
+  // 2. Attempt to resume if suspended (often needs user interaction first)
+  if (audioContext.state === 'suspended') {
+    console.log("AudioContext suspended, attempting resume...");
+    // Attempt resume, but don't rely on it immediately
+    audioContext.resume().catch(e => console.error("Error resuming AudioContext:", e));
+    // Return null for now, as resume is async and might fail. 
+    // Subsequent calls might succeed after user interaction.
+    return null; 
+  }
+  
+  // 3. Check if running *after* potential initialization/resume attempt
+  if (audioContext.state !== 'running') {
+     console.warn("AudioContext not running. State:", audioContext.state);
+     return null; // Return null if not running
+  }
+  
+  // 4. If running, return the context
+  // console.log("AudioContext is running."); // Optional: confirmation log
+  return audioContext; 
+};
 
-    console.log("AudioContext is running, creating sound nodes...");
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
+// Simple UI Click Sound
+const playClickSound = () => {
+  console.log("Attempting to play click sound...");
+  const ctx = getAudioContext();
+
+  // 1. Check if context is available *first*
+  if (!ctx) {
+    console.warn("playClickSound: AudioContext not available or not running. Cannot play sound.");
+    // If no context, simply exit the function.
+    return; 
+  }
+
+  // 2. Context is valid, proceed with sound generation inside a try...catch
+  try {
+    console.log(`playClickSound: Context state is '${ctx.state}'. Creating audio nodes.`);
+    const oscillator = ctx.createOscillator();
+    const gainNode = ctx.createGain();
 
     oscillator.type = 'sine';
-    oscillator.frequency.setValueAtTime(880, audioContext.currentTime); // Higher pitch A5
-    gainNode.gain.setValueAtTime(0.2, audioContext.currentTime); // Slightly lower volume
-    gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.05);
+    oscillator.frequency.setValueAtTime(880, ctx.currentTime);
+    gainNode.gain.setValueAtTime(0.15, ctx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05);
 
     oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
+    gainNode.connect(ctx.destination);
 
-    console.log("Starting sound playback...");
-    oscillator.start(audioContext.currentTime);
-    oscillator.stop(audioContext.currentTime + 0.05);
-    console.log("Sound playback finished scheduling.");
+    console.log("playClickSound: Starting oscillator...");
+    oscillator.start(ctx.currentTime);
+    oscillator.stop(ctx.currentTime + 0.05);
+    console.log("playClickSound: Oscillator scheduled to stop.");
 
   } catch (e) {
-      console.error("Error in playClickSound:", e);
-      // Reset context if error occurred?
-      // audioContext = null;
-  }
+    // This block catches errors during node creation or playback attempt
+    console.error("playClickSound: Error during audio node creation/playback:", e);
+  } 
+  // End of try...catch block
+
 };
-// --- End Sound --- 
+
+// Placeholder piece sounds
+const playPieceSound = (pieceSymbol: string | null) => {
+  console.log(`Playing sound for piece: ${pieceSymbol}`);
+  const ctx = getAudioContext();
+  if (!ctx) {
+    console.warn(`Cannot play piece sound [${pieceSymbol}]: AudioContext not available/running.`);
+    return;
+  }
+  let freq = 440; 
+  let waveform: OscillatorType = 'sine';
+  let duration = 0.1;
+  let vol = 0.2;
+
+  switch (pieceSymbol) {
+    case 'P': freq = 660; waveform = 'triangle'; duration=0.08; vol=0.15; break;
+    case 'N': freq = 330; waveform = 'sawtooth'; duration=0.12; vol=0.25; break;
+    case 'B': freq = 523; waveform = 'sine'; duration=0.15; vol=0.2; break;
+    case 'R': freq = 261; waveform = 'square'; duration=0.18; vol=0.3; break;
+    case 'Q': freq = 784; waveform = 'sine'; duration=0.25; vol=0.25; break;
+    case 'K': freq = 164; waveform = 'square'; duration=0.3; vol=0.35; break;
+    default: waveform = 'sine'; freq=110; duration=0.05; vol=0.1; break;
+  }
+  
+  try {
+    const oscillator = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+    oscillator.type = waveform;
+    oscillator.frequency.setValueAtTime(freq, ctx.currentTime);
+    gainNode.gain.setValueAtTime(vol, ctx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+    oscillator.connect(gainNode);
+    gainNode.connect(ctx.destination);
+    oscillator.start(ctx.currentTime);
+    oscillator.stop(ctx.currentTime + duration);
+  } catch (e) { console.error(`Error playing sound for ${pieceSymbol}:`, e); }
+};
+
+// New Game Move Sound 
+const playMoveSound = () => {
+  const ctx = getAudioContext();
+  if (!ctx) return;
+  try {
+    const oscillator = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+    oscillator.type = 'square'; // Different waveform
+    oscillator.frequency.setValueAtTime(220, ctx.currentTime); // Lower pitch (A3)
+    gainNode.gain.setValueAtTime(0.2, ctx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+    oscillator.connect(gainNode);
+    gainNode.connect(ctx.destination);
+    oscillator.start(ctx.currentTime);
+    oscillator.stop(ctx.currentTime + 0.1);
+  } catch (e) { console.error("Error playing move sound:", e); }
+};
+
+// New Check Sound
+const playCheckSound = () => {
+  const ctx = getAudioContext();
+  if (!ctx) return;
+  try {
+    const osc1 = ctx.createOscillator();
+    const osc2 = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+    osc1.type = 'triangle';
+    osc2.type = 'sine';
+    osc1.frequency.setValueAtTime(1200, ctx.currentTime);
+    osc2.frequency.setValueAtTime(1300, ctx.currentTime);
+    gainNode.gain.setValueAtTime(0.25, ctx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+    osc1.connect(gainNode);
+    osc2.connect(gainNode);
+    gainNode.connect(ctx.destination);
+    osc1.start(ctx.currentTime);
+    osc1.stop(ctx.currentTime + 0.15);
+    osc2.start(ctx.currentTime);
+    osc2.stop(ctx.currentTime + 0.15);
+  } catch (e) { console.error("Error playing check sound:", e); }
+};
+
+// New Checkmate/Game End Sound
+const playCheckmateSound = () => {
+  const ctx = getAudioContext();
+  if (!ctx) return;
+  try {
+    const osc = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(100, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(40, ctx.currentTime + 0.5);
+    gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
+    gainNode.gain.linearRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+    osc.connect(gainNode);
+    gainNode.connect(ctx.destination);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.5);
+  } catch (e) { console.error("Error playing checkmate sound:", e); }
+};
+
+// New Capture Sound ("Explosion")
+const playCaptureSound = () => {
+  console.log("Playing CAPTURE sound");
+  const ctx = getAudioContext();
+  if (!ctx) {
+    console.warn("Cannot play capture sound: AudioContext not available/running.");
+    return;
+  }
+  try {
+    const osc = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+    
+    // Low frequency, sawtooth wave for a rougher sound
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(120, ctx.currentTime); // Start low
+    // Quick drop in frequency
+    osc.frequency.exponentialRampToValueAtTime(30, ctx.currentTime + 0.25); 
+
+    // Higher initial volume, quick decay
+    gainNode.gain.setValueAtTime(0.4, ctx.currentTime); // Louder than normal move
+    gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25); 
+
+    osc.connect(gainNode);
+    gainNode.connect(ctx.destination);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.25);
+  } catch (e) { console.error("Error playing capture sound:", e); }
+};
+
+// Helper function to count pieces on the board
+const countPieces = (board: (Piece | null)[][]): number => {
+  return board.flat().filter(piece => piece !== null).length;
+};
+
+// --- End Sounds ---
 
 const GamePage: React.FC = () => {
   const { gameId } = useParams<{ gameId: string }>();
@@ -106,6 +268,8 @@ const GamePage: React.FC = () => {
   const [isMuted, setIsMuted] = useState(false);
   const [isMicOn, setIsMicOn] = useState(false);
   const boardContainerRef = useRef<HTMLDivElement>(null); // Keep ref definition
+  // Ref to store the piece count of the previous position
+  const previousPieceCountRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!gameId) {
@@ -129,6 +293,8 @@ const GamePage: React.FC = () => {
       toast.success("Connected! Requesting game state...");
       // Request the specific game state
       socket.emit('get_game_state', { gameId });
+      // Reset piece count on new connection/state fetch
+      previousPieceCountRef.current = null; 
     });
 
     socket.on('game_state', (data: GameStateData) => {
@@ -146,12 +312,17 @@ const GamePage: React.FC = () => {
              const loadedGame = new Chess(data.position);
              setGame(loadedGame); 
              setStatusText(getGameStatus(loadedGame));
+             // Initialize piece count from game state
+             previousPieceCountRef.current = countPieces(loadedGame.board()); 
+             console.log("Initial piece count:", previousPieceCountRef.current);
           } catch (e) {
               console.error("Error loading FEN from game_state:", data.position, e);
               toast.error("Received invalid board position from server.");
-              // Keep the default board
               setStatusText("Error loading position");
+              previousPieceCountRef.current = null; // Reset on error
           }
+        } else {
+           previousPieceCountRef.current = null; // No position, no count
         }
         // Assuming backend might send full history with game_state
         if (data.moves && data.moves.length > 0) {
@@ -166,22 +337,50 @@ const GamePage: React.FC = () => {
     });
 
     socket.on('position', (data: MoveData & { gameId: string }) => {
-      // Check if the position update is for THIS game
       if (data.gameId === gameId) {
         console.log('Received position update:', data);
+        let wasCapture = false; // Flag to track if the move was a capture
+
         try {
-            const updatedGame = new Chess(data.fen); // Load new FEN
+            const updatedGame = new Chess(data.fen);
+            
+            // --- Capture Detection ---
+            const currentPieceCount = countPieces(updatedGame.board());
+            console.log("Current piece count:", currentPieceCount, "Previous:", previousPieceCountRef.current);
+            if (previousPieceCountRef.current !== null && currentPieceCount < previousPieceCountRef.current) {
+                wasCapture = true;
+                console.log("Capture detected!");
+            }
+            // Update the ref for the next move
+            previousPieceCountRef.current = currentPieceCount; 
+            // --- End Capture Detection ---
+
             setGame(updatedGame);
-            setMoveHistory(prev => [...prev, data]); // Add new move to history
+            setMoveHistory(prev => [...prev, data]);
             setStatusText(getGameStatus(updatedGame));
-            // Maybe update viewer count if included?
+            
+            // --- Sound Logic ---
+            if (!isMuted) {
+              if (updatedGame.isCheckmate()) {
+                 playCheckmateSound();
+              } else if (updatedGame.isCheck()) {
+                 playCheckSound();
+              } else if (wasCapture) { // Play capture sound if detected
+                 playCaptureSound(); 
+              } else {
+                 // Play regular sound based on the moved piece
+                 playPieceSound(data.piece_moved);
+              }
+            }
+            // --- End Sound Logic ---
+
         } catch (e) {
             console.error("Error loading FEN from position update:", data.fen, e);
             toast.error("Received invalid board position update.");
+            // Consider resetting piece count on error?
+            // previousPieceCountRef.current = null; 
         }
-      } else {
-         // console.log('Ignoring position update for other game', data.gameId);
-      }
+      } else { /* ignore */ }
     });
     
     socket.on('game_ended', (data: { gameId: string }) => {
@@ -190,6 +389,11 @@ const GamePage: React.FC = () => {
             setIsLive(false);
             setStatusText("Game Ended");
             toast.info("Game has ended");
+            // Play end sound if not muted
+            if (!isMuted) {
+                playCheckmateSound(); // Reuse checkmate sound for game end
+            }
+             previousPieceCountRef.current = null; // Reset on game end
         }
     });
     
@@ -200,6 +404,7 @@ const GamePage: React.FC = () => {
       setStatusText("Connection Failed");
       toast.error("Connection failed. Is the server running?");
       socketRef.current = null;
+      previousPieceCountRef.current = null; // Reset count
     });
 
     // Handle disconnection
@@ -209,6 +414,7 @@ const GamePage: React.FC = () => {
       setStatusText("Disconnected");
       toast.error("Disconnected from live game server");
       socketRef.current = null;
+      previousPieceCountRef.current = null; // Reset count
     });
     
     // Handle general errors from server
@@ -223,9 +429,10 @@ const GamePage: React.FC = () => {
       socket.disconnect();
       socketRef.current = null;
       toast.info("Left game view");
+      previousPieceCountRef.current = null; // Reset count
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gameId]); // Re-run effect only if gameId changes
+  }, [gameId]); // REMOVED isMuted dependency
 
   // Function to get game status text from a Chess instance
   const getGameStatus = (board: Chess) => {
@@ -258,9 +465,10 @@ const GamePage: React.FC = () => {
 
   const handleSoundToggle = () => {
     console.log("Sound toggle clicked");
-    playClickSound();
+    // Still play UI click sound regardless of game mute state
+    playClickSound(); 
     setIsMuted(!isMuted);
-    toast.info(isMuted ? "Sound ON 🔊" : "Sound OFF 🔇");
+    toast.info(isMuted ? "Game Sounds ON 🔊" : "Game Sounds OFF 🔇");
   };
 
   const handleMicToggle = () => {
@@ -281,17 +489,17 @@ const GamePage: React.FC = () => {
           </Button>
           <div className="text-center">
             <h1 className="text-3xl font-bold">{gameTitle}</h1>
-            <p className="text-muted-foreground">Game ID: {gameId}</p>
+        <p className="text-muted-foreground">Game ID: {gameId}</p>
             <div className="mt-2 flex justify-center items-center gap-2 flex-wrap">
               <Badge variant={isLive ? "default" : "outline"} className={isLive ? "bg-green-600" : "bg-gray-500"}>
                 {isLive ? "Live" : "Ended"}
               </Badge>
-              <Badge variant="outline">{viewerCount} watching</Badge>
+          <Badge variant="outline">{viewerCount} watching</Badge>
               <Badge variant={isConnected ? "secondary" : "destructive"}>
                  {isConnected ? "Connected" : "Disconnected"}
               </Badge>
             </div>
-          </div>
+        </div>
       </div>
       
       {/* Main Content Grid (Now 5 Columns) */}
@@ -328,7 +536,7 @@ const GamePage: React.FC = () => {
           </Card>
           
           <div className="mt-6"></div>
-
+        
           {/* Live Insights Card (Placeholder) */}
           <Card>
             <CardHeader>

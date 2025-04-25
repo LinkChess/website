@@ -57,7 +57,8 @@ class ChessMove:
         algebraic=None,
         uci=None,
         move_obj=None,
-        is_legal=None  # NEW
+        is_legal=None,
+        piece_moved=None
     ):
         self.move_id = move_id
         self.fen = fen
@@ -68,12 +69,14 @@ class ChessMove:
         self.uci = uci
         self.move_obj = move_obj
         self.is_legal = is_legal
+        self.piece_moved = piece_moved
 
     def __repr__(self):
         legality = "✅" if self.is_legal else "❌" if self.is_legal is not None else "?"
+        piece = f"({self.piece_moved})" if self.piece_moved else ""
         if self.algebraic:
-            return f"{self.player}: {self.algebraic} ({self.uci}) [{legality}]"
-        return f"{self.player}: [unparsed move] [{legality}]"
+            return f"{self.player}: {self.algebraic}{piece} ({self.uci}) [{legality}]"
+        return f"{self.player}: [unparsed move]{piece} [{legality}]"
 
     def to_model(self, game_id, move_index):
         """Convert ChessMove to database model"""
@@ -128,7 +131,8 @@ class ChessGame:
             algebraic=None,
             uci=None,
             move_obj=None,
-            is_legal=True
+            is_legal=True,
+            piece_moved=None
         )
 
         self.master_state = [initial_move]
@@ -150,27 +154,36 @@ class ChessGame:
     def _process_fen(self, next_fen):
         with self.lock:
             board_before = self.get_latest_board()
-            board_after = chess.Board(next_fen)
-            board_after_fen_only = board_after.board_fen()
+            try:
+                board_after = chess.Board(next_fen)
+                board_after_fen_only = board_after.board_fen()
+            except ValueError as e:
+                print(f"[ERROR] Invalid FEN received in _process_fen: {next_fen} - {e}")
+                return
 
             if self.master_state:
                 last_board_fen = chess.Board(self.master_state[-1].fen).board_fen()
                 if last_board_fen == board_after_fen_only:
-                    print(f"[SKIP] No piece movement detected (board unchanged).")
                     return
 
             move_obj, algebraic = determine_move(board_before, board_after)
+            piece_moved_symbol = None
 
             if move_obj is None:
                 print(f"[WARN] Could not determine move for FEN:\n{next_fen}")
                 new_move = ChessMove(
-                move_id=str(uuid.uuid4()),
-                fen=next_fen,
-                player="White" if board_before.turn == chess.WHITE else "Black",
-                timestamp=datetime.now(),
-                is_legal=False
+                    move_id=str(uuid.uuid4()),
+                    fen=next_fen,
+                    player="White" if board_before.turn == chess.WHITE else "Black",
+                    timestamp=datetime.now(),
+                    is_legal=False,
+                    piece_moved=None
                 )
             else:
+                moved_piece = board_before.piece_at(move_obj.from_square)
+                if moved_piece:
+                    piece_moved_symbol = moved_piece.symbol().upper()
+                
                 new_move = ChessMove(
                     move_id = str(uuid.uuid4()),
                     fen=next_fen,
@@ -179,7 +192,8 @@ class ChessGame:
                     player="White" if board_before.turn == chess.WHITE else "Black",
                     timestamp=datetime.now(),
                     move_obj=move_obj,
-                    is_legal=move_obj in board_before.legal_moves
+                    is_legal=move_obj in board_before.legal_moves,
+                    piece_moved=piece_moved_symbol
                 )
 
             self.master_state.append(new_move)
@@ -191,6 +205,11 @@ class ChessGame:
         player = "White" if board_before.turn == chess.WHITE else "Black"
         timestamp = datetime.now()
         is_legal = move_obj in board_before.legal_moves if move_obj else False
+        piece_moved_symbol = None
+        if move_obj:
+            moved_piece = board_before.piece_at(move_obj.from_square)
+            if moved_piece:
+                piece_moved_symbol = moved_piece.symbol().upper()
 
         return ChessMove(
             move_id=move_id,
@@ -200,7 +219,8 @@ class ChessGame:
             player=player,
             timestamp=timestamp,
             move_obj=move_obj,
-            is_legal=is_legal
+            is_legal=is_legal,
+            piece_moved=piece_moved_symbol
         )
 
     def _replace_move(self, index, new_fen, board_before):

@@ -532,22 +532,20 @@ def handle_simulate_hardware_input(data):
         
         # Check if new moves were added and emit them via WebSocket
         if len(target_game.master_state) > initial_state_len:
-            # Get the latest move added to this specific game
-            move = target_game.master_state[-1]
+            move = target_game.master_state[-1] # Get the latest ChessMove object
             move_index = len(target_game.master_state) - 1
             
-            # Emit the position update, ensuring it targets the correct game ID
-            # The 'position' event might be listened to by multiple clients viewing different games
             socketio.emit('position', {
                 'type': 'position',
-                'gameId': game_id, # Use the specific game ID
+                'gameId': game_id,
                 'fen': move.fen,
                 'moveNumber': move_index,
                 'player': move.player,
                 'algebraic': move.algebraic,
-                'isLegal': move.is_legal
+                'isLegal': move.is_legal,
+                'piece_moved': move.piece_moved # ADD piece_moved field
             })
-            print(f"[POSITION EVENT] Emitted simulated position update from simulate_hardware_input for game {game_id}: {move.algebraic or 'unknown move'} | FEN: {move.fen[:15]}...")
+            print(f"[POSITION EVENT] Emitted simulated position update from simulate_hardware_input for game {game_id}: {move.algebraic or 'unknown move'} ({move.piece_moved}) | FEN: {move.fen[:15]}...")
             
             # Persist the change for the loaded game if it wasn't the global active one
             if target_game != active_game:
