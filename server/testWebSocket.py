@@ -111,7 +111,17 @@ async def host_client_logic():
         "d4", "Qc7", "Nbd2", "cxd4", "cxd4", "Nc6", "Nb3", "a5", "Be3", "a4", # 30 moves
         "Nbd2", "Bd7", "Rc1", "Qb8", "Bb1", "Rc8", "Rxc8+", "Qxc8", "Qd3", "Qa8", # 40 moves
         "Bd1", "h6", "Bb3", "Rc8", "Rc1", "Rxc1+", "Bxc1", "Qa6", "Qxa6", "Bxa6", # 50 moves
-        "Ne1", "Bd8", "Nd3", "Bb7", "f3", "Nd7", "Kf2", "f6", "Ke3", "Kf7" # 60 moves
+        "Ne1", "Bd8", "Nd3", "Bb7", "f3", "Nd7", "Kf2", "f6", "Ke3", "Kf7", # 60 moves
+        "g4", "Ke8", "Kd2", "Kd7", "Kc3", "Kc7", "Kb4", "Kb6", "a3", "g5", # 70 moves
+        "Bc2", "Bc8", "Bb3", "Bb7", "Nc5", "Bc8", "Nxd7+", "Bxd7", "d5", "e4", # 80 moves
+        "fxe4", "Nxe4", "Bxe4", "f5", "gxf5", "Bxf5", "Bxf5", "g4", "Be4", "h5", # 90 moves
+        "Bd3", "h4", "Be2", "Bc7", "Bf1", "Bd8", "Bd3", "Bc7", "Kc4", "Kc6", # 100 moves
+        "b3", "axb3", "Kxb3", "Kd7", "Kc4", "Ke7", "Kd4", "Kf7", "Ke5", "Kg6", # 110 moves
+        "Be2", "Kh5", "Bf1", "Kg5", "Bd3", "Bd8", "a4", "Bc7+", "Ke6", "Bd8", # 120 moves
+        "d6", "Kf4", "d7", "g3", "hxg3+", "Kxg3", "Kf5", "h3", "Kg5", "h2", # 130 moves
+        "Bf1", "Kg2", "Bxh3+", "Kxh3", "Kf6", "Kg4", "Ke7", "Kf5", "Kxd8", "Ke6", # 140 moves
+        "Kc7", "Kd5", "Kb6", "Kc4", "Ka5", "Kc5", "Ka6", "Kc6", "Ka5", "Kc5", # 150 moves
+        "Ka6", "Kc6"  # Draw by threefold repetition
     ]
     
     try:
