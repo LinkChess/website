@@ -18,7 +18,7 @@ const Overview: React.FC = () => {
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-400/10 to-purple-400/5 z-0"></div>
                 <div className="relative z-10">
                   <img 
-                    src="/static/img/chesslink_hardware.jpeg" 
+                    src="/img/chesslink_hardware.jpeg" 
                     alt="ChessLink Hardware" 
                     className="w-full h-auto rounded-xl shadow-soft"
                   />
@@ -79,7 +79,7 @@ const Overview: React.FC = () => {
                 <div className="absolute inset-0 bg-gradient-to-tr from-purple-400/10 to-blue-400/5 z-0"></div>
                 <div className="relative z-10">
                   <img 
-                    src="/static/img/chesslink_software.jpeg" 
+                    src="/img/chesslink_software.jpeg" 
                     alt="ChessLink Software" 
                     className="w-full h-auto rounded-xl shadow-soft"
                   />
@@ -164,7 +164,7 @@ const Overview: React.FC = () => {
                 <div className="absolute inset-0 bg-gradient-to-br from-purple-400/10 to-blue-400/10 z-0"></div>
                 <div className="relative z-10">
                   <img 
-                    src="/static/img/hardware_software.jpeg" 
+                    src="/img/hardware_software.jpeg" 
                     alt="ChessLink Integrated System" 
                     className="w-full h-auto rounded-xl shadow-soft"
                   />
