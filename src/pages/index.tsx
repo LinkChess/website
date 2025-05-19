@@ -6,6 +6,7 @@ import Features from '@/components/Features';
 import Overview from '@/components/Overview';
 import ChessBoard from '@/components/ChessBoard';
 import VideoDemo from '@/components/VideoDemo';
+import Newsletter from '@/components/Newsletter';
 import Footer from '@/components/Footer';
 
 const Index: React.FC = () => {
@@ -44,6 +45,7 @@ const Index: React.FC = () => {
         <Overview />
         <VideoDemo />
         <ChessBoard />
+        <Newsletter />
       </main>
       <Footer />
     </div>
