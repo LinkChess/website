@@ -46,7 +46,7 @@ const Footer: React.FC = () => {
             <ul className="space-y-3">
               <li className="flex items-center text-gray-400">
                 <Mail size={18} className="mr-2" />
-                <a href="mailto:info@chesslink.com" className="hover:text-white transition-colors">info@chesslink.com</a>
+                <a href="mailto:info@chesslink.site" className="hover:text-white transition-colors">info@chesslink.site</a>
               </li>
             </ul>
             <div className="mt-6">
