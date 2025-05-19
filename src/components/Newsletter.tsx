@@ -2,6 +2,7 @@ import React from 'react';
 import { Mail } from 'lucide-react';
 
 const Newsletter: React.FC = () => {
+
   return (
     <section className="py-16 bg-gray-100" id="newsletter">
       <div className="container mx-auto px-4">
@@ -26,33 +27,11 @@ const Newsletter: React.FC = () => {
             />
             <button 
               type="submit" 
-              className="pageclip-form__submit bg-accent hover:bg-accent-dark text-white font-medium py-3 px-6 rounded-lg transition-colors"
+              className="button pageclip-form__submit bg-accent hover:bg-accent-dark text-white font-medium py-3 px-6 rounded-lg transition-colors"
             >
               Subscribe
             </button>
             </form>
-
-          {/* <form 
-            action="https://send.pageclip.co/5c1QquHZx1ToqFrGclSR1Br9z2tI9iMH" 
-            // method="POST" 
-            className="flex flex-col sm:flex-row gap-4 max-w-xl mx-auto pageclip-form" 
-            method="post"
-          >
-            <input
-              type="email"
-              name="email"
-              placeholder="Your email address"
-              className="flex-grow px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-              aria-label="Email address"
-              required
-            />
-            <button 
-              type="submit" 
-              className="pageclip-form__submit bg-accent hover:bg-accent-dark text-white font-medium py-3 px-6 rounded-lg transition-colors"
-            >
-              Subscribe
-            </button>
-          </form> */}
 
           <div className="mt-8 text-gray-500">
             <p className="text-sm">
