@@ -5,14 +5,14 @@ The ChessLink hardware is designed to detect chess moves accurately on a physica
 ## Core Components
 
 *   **Sensor Array:**
-    *   An 8x8 matrix of Hall effect sensors detects the presence and movement of magnetic chess pieces.
-    *   An 8x8 matrix of phototransistors measures light levels, potentially for detecting piece lifting or presence.
-    *   An 8x8 matrix of IR emitters pairs with the phototransistors.
+    *   An 8x8 matrix of phototransistors paired with LEDs detects the presence and movement of chess pieces through light interruption. Each piece is labelled with a sticker indicating the colour that they represent. 
+
+    *   An 8x8 matrix of RGB LEDs is embedded in each square for visual feedback.
 *   **LED System:**
     *   An 8x8 matrix of RGB LEDs is embedded within each square.
     *   Used for visual feedback, move validation indication, training guidance, and highlighting squares.
 *   **Microcontrollers:**
-    *   **Master:** An ESP32-C3 microcontroller serves as the main processor.
+    *   **Master:** 4 independdent Arduino microcontroller conduct their own sensing and report results back via serial.
     *   **Slaves:** 16 ATtiny microcontrollers likely manage specific rows/columns of sensors/LEDs, communicating with the master via UART.
 *   **PCB Design:** A custom multi-layer Printed Circuit Board integrates all electronic components.
 *   **Power System:** A regulated 5V system powers all components.
@@ -20,7 +20,7 @@ The ChessLink hardware is designed to detect chess moves accurately on a physica
 
 ## Functionality
 
-The hardware detects piece movement using the Hall effect sensors. This data is processed by the microcontrollers and sent to the backend server via the serial connection. The LEDs provide visual feedback based on instructions received back from the server or based on internal logic.
+The hardware detects piece movement using the phototransistors and IR emitters. This data is processed by the microcontrollers and sent to the backend server via the serial connection. The LEDs provide visual feedback based on instructions received back from the server or based on internal logic.
 
 ```mermaid
 graph TD

@@ -52,7 +52,7 @@ const DemoPage: React.FC = () => {
                 <h4 className="text-lg font-medium text-yellow-800 mb-2">Note About This Demo</h4>
                 <p className="text-yellow-800">
                   This is a simulated demonstration. In the actual ChessLink system, the physical board contains real sensors that detect piece movements, 
-                  with the data processed by an ESP32-C3 microcontroller and Arduino Nano co-processor.
+                  with the data processed by four Arduino microcontrollers (eventually will be ESP32).
                 </p>
               </div>
             </div>

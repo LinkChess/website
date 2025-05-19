@@ -23,9 +23,9 @@
 
 ### Core Hardware Components
 
-- **Sensor Array**: 64-square (8×8) matrix of Hall effect sensors that detect magnetic chess pieces, 64-square (8x8) matrix of phototransistors which measure current, 64-square (8×8) matrix of RGB LEDs, 64-square (8×8) matrix of IR emitters.
+- **Sensor Array**: 64-square (8×8) matrix of phototransistors and IR emitters that detect chess pieces through light interruption, 64-square (8×8) matrix of RGB LEDs for visual feedback and move guidance.
 - **LED System**: RGB LEDs integrated into each square for visual feedback and move guidance
-- **Microcontroller Unit**: ESP32-C3 (master) combined with 16 ATtiny microcontrollers (slave) communicating through UART
+- **Microcontroller Unit**: 4-custom PCBs each equipped with Arduino microcontrollers communicating through UART
 - **PCB Design**: Custom multi-layer PCB (currently in development) integrating all electronic components
 - **Power System**: 5V system with regulated power distribution for sensors, LEDs, and microcontrollers
 - **I/O Interface**: Serial/USB connection to host application, with Bluetooth/WiFi capabilities
@@ -71,7 +71,7 @@ The system is designed for:
 
 The software stack complements the hardware system:
 
-1. **Firmware**: ESP32/Arduino code handling sensor data and LED control
+1. **Firmware**: Arduino code handling sensor data and LED control
 2. **Web Application / Documentation Site**: This Docusaurus-based site providing project information, visualization, and guides.
 3. **API Layer**: Connects hardware with software systems
 4. **Optional Server**: For online play and advanced features

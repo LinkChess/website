@@ -7,9 +7,9 @@ This document describes the architecture of the ChessLink system and its simulat
 The ChessLink's core purpose is to create a bridge between physical chess play and digital analysis:
 
 1. **Physical Chess Board**: The hardware centerpiece with embedded sensors that detect piece movements
-2. **Sensor Array**: 64-square matrix of Hall effect sensors and phototransistors that detect magnetic chess pieces
+2. **Sensor Array**: 64-square matrix of phototransistors and LEDs that detect chess pieces through light interruption
 3. **LED System**: RGB LEDs in each square for visual feedback and move guidance
-4. **Microcontroller**: ESP32-C3 with multiple ATtiny microcontrollers for sensor/LED management
+4. **Microcontroller**: Arduino microcontrollers for sensor/LED management
 5. **Web Application**: React-based frontend that displays the synchronized digital board
 6. **Communication Layer**: Serial/USB or Wireless connections between hardware and software
 
@@ -56,10 +56,10 @@ graph TB
 
 ## Sensor System
 
-The physical board uses two types of sensors to detect chess pieces:
+The physical board uses a sensor system to detect chess pieces:
 
-1. **Hall Effect Sensors**: Detect the magnetic field from specially prepared chess pieces
-2. **Phototransistors**: Measure light reflectance from the bottom of pieces for identification
+1. **Phototransistors**: Paired with IR emitters to detect piece presence through light interruption
+2. **RGB LEDs**: Provide visual feedback and move guidance embedded in each square
 
 These sensors are organized in an 8×8 matrix configuration and managed by multiple microcontrollers.
 
@@ -69,7 +69,7 @@ These sensors are organized in an 8×8 matrix configuration and managed by multi
 +-----------------+    +-----------------+    +-----------------+
 | Sensor Module   |    | Arduino Nano (x16) |    | Arduino     |
 | Phototransistor|====> Each Handles 2×2 |====> Main Controller |
-| Hall Effect     |    | Grid Section     |    | (UART Master)   |
+| IR Emitter      |    | Grid Section     |    | (UART Master)   |
 | IR Emitter      |    | UART to ESP32    |    |                 |
 | RGB LEDs        |    | (4 ATtiny in P1) |    |                 |
 +-----------------+    +-----------------+    +-----------------+

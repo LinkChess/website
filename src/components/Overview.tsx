@@ -44,7 +44,7 @@ const Overview: React.FC = () => {
                       <Info className="h-4 w-4 text-accent" />
                     </div>
                     <div className="ml-3">
-                      <p><strong className="font-medium text-gray-900">Sensors:</strong> Hall-effect sensors that detect when pieces are moved with perfect accuracy.</p>
+                      <p><strong className="font-medium text-gray-900">Sensors:</strong> Phototransistors and LEDs detect when pieces are moved with perfect accuracy.</p>
                     </div>
                   </li>
                   <li className="flex items-start">
@@ -60,7 +60,7 @@ const Overview: React.FC = () => {
                       <Info className="h-4 w-4 text-accent" />
                     </div>
                     <div className="ml-3">
-                      <p><strong className="font-medium text-gray-900">Microcontroller:</strong> Arduino reads sensor data and communicates with the web app.</p>
+                      <p><strong className="font-medium text-gray-900">Microcontroller:</strong> 4 Arduino Nanos read sensor data and communicate with the web app.</p>
                     </div>
                   </li>
                 </ul>

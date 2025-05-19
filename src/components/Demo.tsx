@@ -992,8 +992,8 @@ const Demo: React.FC = () => {
                         <p className="text-sm text-gray-600">64 IR sensors with RGB LEDs arranged in an 8×8 grid</p>
                       </div>
                       <div className="border rounded p-4 shadow-sm">
-                        <h4 className="font-medium text-lg mb-2">ESP32-C3</h4>
-                        <p className="text-sm text-gray-600">Central microcontroller running at 160MHz</p>
+                        <h4 className="font-medium text-lg mb-2">Arduino Nano</h4>
+                        <p className="text-sm text-gray-600">Central microcontroller (eventually will be ESP32)</p>
                       </div>
                       <div className="border rounded p-4 shadow-sm">
                         <h4 className="font-medium text-lg mb-2">Arduino Nano</h4>
