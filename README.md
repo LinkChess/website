@@ -23,7 +23,7 @@
 
 ### Core Hardware Components
 
-- **Sensor Array**: 64-square (8×8) matrix of phototransistors and IR emitters that detect chess pieces through light interruption, 64-square (8×8) matrix of RGB LEDs for visual feedback and move guidance.
+- **Sensor Array**: 64-square (8×8) matrix of phototransistors and LEDs that detect chess pieces through light interruption, 64-square (8×8) matrix of RGB LEDs for visual feedback and move guidance.
 - **LED System**: RGB LEDs integrated into each square for visual feedback and move guidance
 - **Microcontroller Unit**: 4-custom PCBs each equipped with Arduino microcontrollers communicating through UART
 - **PCB Design**: Custom multi-layer PCB (currently in development) integrating all electronic components

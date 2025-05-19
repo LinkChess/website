@@ -20,7 +20,7 @@ The ChessLink hardware is designed to detect chess moves accurately on a physica
 
 ## Functionality
 
-The hardware detects piece movement using the phototransistors and IR emitters. This data is processed by the microcontrollers and sent to the backend server via the serial connection. The LEDs provide visual feedback based on instructions received back from the server or based on internal logic.
+The hardware detects piece movement using the phototransistors and LEDs. This data is processed by the microcontrollers and sent to the backend server via the serial connection. The LEDs provide visual feedback based on instructions received back from the server or based on internal logic.
 
 ```mermaid
 graph TD

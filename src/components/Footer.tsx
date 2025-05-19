@@ -32,6 +32,7 @@ const Footer: React.FC = () => {
               <li><a href="/demo" className="text-gray-400 hover:text-white transition-colors">Demo</a></li>
               <li><a href="/live" className="text-gray-400 hover:text-white transition-colors">Live Games</a></li>
               <li><a href="/play" className="text-gray-400 hover:text-white transition-colors">Play Chess</a></li>
+              <li><a href="https://github.com/LinkChess/chesslink-v1" className="text-gray-400 hover:text-white transition-colors">Hardware Repo</a></li>
             </ul>
           </div>
           
@@ -41,6 +42,10 @@ const Footer: React.FC = () => {
               <li className="flex items-center text-gray-400">
                 <Mail size={18} className="mr-2" />
                 <a href="mailto:info@chesslink.site" className="hover:text-white transition-colors">info@chesslink.site</a>
+              </li>
+              <li className="flex items-center text-gray-400">
+                <Github size={18} className="mr-2" />
+                <a href="https://github.com/LinkChess/chesslink-v1" className="hover:text-white transition-colors">Hardware Repository</a>
               </li>
             </ul>
             <div className="mt-6">
