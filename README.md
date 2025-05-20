@@ -82,7 +82,7 @@ See the [Software Documentation](/docs/category/software) section of this site f
 
 ## Development Status
 
-**Current Status: Hardware Prototype Phase**
+**Current Status: Version 1 Demo Completed**
 
 - ✅ Hardware architecture designed
 - ✅ Sensor and LED testing completed
@@ -90,8 +90,14 @@ See the [Software Documentation](/docs/category/software) section of this site f
 - ✅ PCB design in progress
 - ✅ Final component selection being evaluated
 - ✅ 4×4 prototype board operational
-- 🔄 Full 8×8 board assembly
-- 🔄 Case design and manufacturing
+- ✅ Full 8×8 board assembly
+- ✅ Case design and manufacturing
+
+**Updates: Version 2 WIP**
+- 🔄 Implement ESP32 into the application
+- 🔄 Open-source all remaining modules/fix documentation of v1
+- 🔄 Working version which is buildable by users at home
+
 
 *(Track progress and details in the Development section of the documentation.)*
 
