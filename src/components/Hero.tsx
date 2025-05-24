@@ -47,7 +47,7 @@ const Hero: React.FC = () => {
               <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-blue-400 rounded-3xl blur-xl opacity-20 animate-subtle-pulse"></div>
               <div className="glass-card p-6 relative overflow-hidden">
                 <img 
-                  src="https://images.unsplash.com/photo-1586165368502-1bad197a6461?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2346&q=80" 
+                  src="/img/hero-image.jpeg" 
                   alt="ChessLink Smart Board" 
                   className="w-full h-auto rounded-xl shadow-soft object-cover"
                 />
