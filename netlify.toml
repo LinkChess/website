@@ -3,3 +3,9 @@
 
 [functions]
    directory = "netlify/functions/"
+
+# Handle Single Page Application routing
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
