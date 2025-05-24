@@ -17,7 +17,7 @@ const Footer: React.FC = () => {
               <a href="https://github.com/LinkChess" className="text-gray-400 hover:text-white transition-colors">
                 <Github size={20} />
               </a>
-              <a href="mailto:info@chesslink.site" className="text-gray-400 hover:text-white transition-colors">
+              <a href="mailto:info@linkchess.org" className="text-gray-400 hover:text-white transition-colors">
                 <Mail size={20} />
               </a>
             </div>
@@ -43,7 +43,7 @@ const Footer: React.FC = () => {
             <ul className="space-y-3">
               <li className="flex items-center text-gray-400">
                 <Mail size={18} className="mr-2" />
-                <a href="mailto:info@chesslink.site" className="hover:text-white transition-colors">info@chesslink.site</a>
+                <a href="mailto:info@linkchess.org" className="hover:text-white transition-colors">info@linkchess.org</a>
               </li>
               <li className="flex items-center text-gray-400">
                 <Github size={18} className="mr-2" />

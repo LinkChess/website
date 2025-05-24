@@ -40,7 +40,7 @@ The deployment process is automated using the `deploy.sh` script. This script ha
     ```
 3.  **Enter Credentials:** The script will prompt you multiple times for the server's password (if using password authentication). Enter it each time it asks. **Using SSH keys is strongly recommended for better security and convenience.**
 4.  **Verify:** Once the script finishes, it will output "Deployment complete!".
-    *   Open your web browser and navigate to `https://chesslink.site`.
+    *   Open your web browser and navigate to `https://linkchess.org`.
     *   Test the main page and specifically navigate directly to `/demo`, `/play`, and `/sounds` to ensure they load correctly.
     *   Clear your browser cache if you still see the old version.
 

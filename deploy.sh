@@ -6,7 +6,7 @@ set -e
 # --- Frontend Build ---
 echo "Building the site with production Socket.IO URL..."
 # Set the environment variable for the build process
-VITE_SOCKET_URL='wss://chesslink.site' npm run build
+VITE_SOCKET_URL='wss://linkchess.org' npm run build
 
 # --- Local SPA Workaround Removal ---
 # Removed: mkdir -p dist/demo dist/play dist/sounds
@@ -49,32 +49,27 @@ fi
 
 echo "Creating Nginx configuration at $NGINX_CONF_PATH"
 cat > "$NGINX_CONF_PATH" << 'CONF'
+# --- Serve content on linkchess.org ---
 server {
-    listen 80;
-    server_name chesslink.site www.chesslink.site; # Add www if needed
+    listen 443 ssl;
+    server_name linkchess.org www.linkchess.org;
 
-    # Consider adding HTTPS configuration here later (listen 443 ssl...)
-    
-    root /var/www/chesslink.site;
+    root /var/www/linkchess.org;
     index index.html index.htm;
 
-    # Standard SPA Routing (Handles React Router)
     location / {
         try_files $uri $uri/ /index.html;
-        add_header Cache-Control "no-store, no-cache, must-revalidate"; # Prevent caching of index.html
+        add_header Cache-Control "no-store, no-cache, must-revalidate";
     }
 
-    # Serve static assets with caching
     location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
-        root /var/www/chesslink.site; # Ensure root is correct for assets
         expires 30d;
         add_header Cache-Control "public, max-age=2592000";
         access_log off;
     }
-    
-    # WebSocket Proxy for Socket.IO
+
     location /socket.io/ {
-        proxy_pass http://localhost:8765; # Point to the backend Flask-SocketIO server
+        proxy_pass http://localhost:8765;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "Upgrade";
@@ -83,7 +78,40 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
     }
+
+    ssl_certificate /etc/letsencrypt/live/linkchess.org/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/linkchess.org/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
 }
+
+# --- Redirect HTTPS chesslink.site to linkchess.org ---
+server {
+    listen 443 ssl;
+    server_name chesslink.site www.chesslink.site;
+
+    ssl_certificate /etc/letsencrypt/live/chesslink.site/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/chesslink.site/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
+    return 301 https://linkchess.org$request_uri;
+}
+
+# --- Redirect HTTP chesslink.site to linkchess.org ---
+server {
+    listen 80;
+    server_name chesslink.site www.chesslink.site;
+    return 301 https://linkchess.org$request_uri;
+}
+
+# --- Redirect HTTP linkchess.org to HTTPS ---
+server {
+    listen 80;
+    server_name linkchess.org www.linkchess.org;
+    return 301 https://linkchess.org$request_uri;
+}
+
 CONF
 
   # Enable the site if using sites-available/sites-enabled pattern
@@ -138,7 +166,7 @@ systemctl restart chesslink-backend.service
 
 # --- Frontend Files Permissions ---
 echo ">>> Setting permissions for frontend files..."
-WEB_ROOT="/var/www/chesslink.site"
+WEB_ROOT="/var/www/linkchess.org"
 if [ -d "$WEB_ROOT" ]; then
   NGINX_USER=$(ps aux | grep "nginx: worker" | grep -v "grep" | awk '{print $1}' | head -1 || echo "nginx") # Default to nginx if detection fails
   echo "Setting ownership for $WEB_ROOT to $NGINX_USER..."
@@ -221,7 +249,7 @@ ssh -p 22 "$SERVER" "bash ~/server-setup.sh"
 # Clean up local setup script
 rm server-setup.sh
 
-echo "Deployment complete! Your site should be accessible at http://chesslink.site" # Changed to http for now
+echo "Deployment complete! Your site should be accessible at http://linkchess.org" # Changed to http for now
 echo "The backend should be running and proxied via Nginx."
 echo "IMPORTANT: Setup HTTPS (Let's Encrypt/Certbot) and update VITE_SOCKET_URL to wss:// for production!"
 echo "Also ensure you are using SSH Key authentication, not passwords." 
