@@ -34,10 +34,10 @@ const Hero: React.FC = () => {
                 Explore Features
                 <ChevronRight className="ml-2 h-4 w-4" />
               </a>
-              {/* <a href="/demo" className="btn-secondary rounded-full">
+              <a href="/#video-demo" className="btn-secondary rounded-full">
                 <Play className="mr-2 h-4 w-4" />
-                Interactive Demo
-              </a> */}
+                View our Demo Video
+              </a>
             </div>
           </div>
           
