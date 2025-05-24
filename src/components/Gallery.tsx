@@ -147,7 +147,7 @@ const Gallery: React.FC = () => {
     {
       src: '/img/gallery/team-demo.jpeg',
       alt: 'Team photo on demo day',
-      caption: 'FLTRL: Victor Zheng, Jaffar Keikei, Kevin Li, Chiatzen Wang, Prof. Paul Dietz',
+      caption: 'Team members: Victor Zheng, Jaffar Keikei, Kevin Li, Chiatzen Wang, and Prof. Paul Dietz (project advisor) at our demo day',
     },
     {
       src: '/img/gallery/demo-day1.jpg',
