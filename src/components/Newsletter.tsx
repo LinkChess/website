@@ -1,7 +1,34 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Mail } from 'lucide-react';
+import { newsletterApi } from '../lib/api';
 
 const Newsletter: React.FC = () => {
+  const [email, setEmail] = useState('');
+  const [message, setMessage] = useState('');
+  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setStatus('loading');
+    setMessage('');
+
+    try {
+      const data = await newsletterApi.subscribe(email);
+      
+      if (data.success) {
+        setStatus('success');
+        setMessage(data.message);
+        setEmail('');
+      } else {
+        setStatus('error');
+        setMessage(data.message || 'An error occurred. Please try again.');
+      }
+    } catch (error) {
+      setStatus('error');
+      setMessage('Failed to connect to the server. Please try again later.');
+      console.error('Subscription error:', error);
+    }
+  };
 
   return (
     <section className="py-16 bg-gray-100" id="newsletter">
@@ -13,25 +40,33 @@ const Newsletter: React.FC = () => {
             Subscribe to our newsletter to receive development updates, announcements, and early access opportunities.
           </p>
             <form 
-            action="https://send.pageclip.co/5c1QquHZx1ToqFrGclSR1Br9z2tI9iMH/Newsletter" 
-            method="post"
-            className="flex flex-col sm:flex-row gap-4 max-w-xl mx-auto pageclip-form"
+            onSubmit={handleSubmit}
+            className="flex flex-col sm:flex-row gap-4 max-w-xl mx-auto"
             >
             <input
               type="email"
-              name="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               placeholder="Your email address"
               className="flex-grow px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
               aria-label="Email address"
               required
+              disabled={status === 'loading'}
             />
             <button 
               type="submit" 
-              className="button pageclip-form__submit bg-accent hover:bg-accent-dark text-white font-medium py-3 px-6 rounded-lg transition-colors"
+              className="bg-accent hover:bg-accent-dark text-white font-medium py-3 px-6 rounded-lg transition-colors disabled:opacity-70"
+              disabled={status === 'loading'}
             >
-              Subscribe
+              {status === 'loading' ? 'Subscribing...' : 'Subscribe'}
             </button>
             </form>
+            
+            {message && (
+              <div className={`mt-4 p-2 rounded ${status === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                {message}
+              </div>
+            )}
 
           <div className="mt-8 text-gray-500">
             <p className="text-sm">

@@ -8,6 +8,7 @@ import threading
 import time
 import uuid
 import json
+import sqlite3
 from chessClass import ChessGame
 from chessFileReader import ChessFileReader, create_reader
 
@@ -1018,6 +1019,67 @@ def update_game_result(game_id):
             'message': str(e)
         }), 500
 
+@app.route('/api/subscribe', methods=['POST'])
+def subscribe():
+    try:
+        # Get email from request
+        data = request.get_json()
+        if not data or 'email' not in data:
+            return jsonify({'success': False, 'message': 'Email is required'}), 400
+        
+        email = data['email']
+        
+        # Basic email validation
+        if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
+            return jsonify({'success': False, 'message': 'Invalid email format'}), 400
+        
+        # Connect to database
+        conn = sqlite3.connect('chess_games.db')
+        cursor = conn.cursor()
+        
+        # Insert email into subscribers table
+        try:
+            cursor.execute('INSERT INTO subscribers (email) VALUES (?)', (email,))
+            conn.commit()
+            return jsonify({'success': True, 'message': 'Subscription successful!'}), 201
+        except sqlite3.IntegrityError:
+            # Email already exists
+            return jsonify({'success': True, 'message': 'You are already subscribed!'}), 200
+        finally:
+            conn.close()
+            
+    except Exception as e:
+        print(f"[ERROR] Subscription error: {str(e)}")
+        return jsonify({'success': False, 'message': 'An error occurred. Please try again later.'}), 500
+
+@app.route('/api/subscribers', methods=['GET'])
+def get_subscribers():
+    try:
+        # Check for admin access (you can implement more secure authentication)
+        if 'admin_key' not in request.args or request.args['admin_key'] != 'your_admin_key_here':
+            return jsonify({'success': False, 'message': 'Unauthorized access'}), 401
+        
+        # Connect to database
+        conn = sqlite3.connect('chess_games.db')
+        conn.row_factory = sqlite3.Row  # This enables column access by name
+        cursor = conn.cursor()
+        
+        # Get all subscribers
+        cursor.execute('SELECT email, subscribed_at FROM subscribers ORDER BY subscribed_at DESC')
+        subscribers = [dict(row) for row in cursor.fetchall()]
+        
+        conn.close()
+        
+        return jsonify({
+            'success': True, 
+            'count': len(subscribers),
+            'subscribers': subscribers
+        })
+            
+    except Exception as e:
+        print(f"[ERROR] Error fetching subscribers: {str(e)}")
+        return jsonify({'success': False, 'message': 'An error occurred while fetching subscribers'}), 500
+
 if __name__ == '__main__':
     print("Starting ChessLink WebSocket Server on port 8765...")
-    socketio.run(app, host='127.0.0.1', port=8765, debug=True, allow_unsafe_werkzeug=True) 
+    socketio.run(app, host='127.0.0.1', port=8765, debug=True, allow_unsafe_werkzeug=True)
