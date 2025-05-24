@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Zap, Wifi, BarChart3, Speaker, Lightbulb, Brain } from 'lucide-react';
+import { Zap, Wifi, BadgeDollarSign, CloudLightning, LayoutDashboard, BarChart3, Speaker, Lightbulb, Brain } from 'lucide-react';
 import { useSequentialAnimation } from '@/lib/animations';
 
 interface FeatureCardProps {
@@ -57,12 +57,27 @@ const Features: React.FC = () => {
     {
       icon: <Brain size={20} />,
       title: 'Training Mode',
-      description: 'Offers real-time suggestions and visual/audio guidance for learning.'
+      description: 'Offers real-time suggestions and visual/audio guidance for learning. Both on the board and on the app.'
     },
     {
       icon: <BarChart3 size={20} />,
       title: 'Analysis Mode',
       description: 'Provides post-game data and best-move recommendations to improve your game.'
+    },
+    {
+      icon: <LayoutDashboard size={20} />,
+      title: 'Complete Piece Detection',
+      description: 'Detects pieces regardless of starting position and even illegal moves, chess960 positions, and chess variants like Bughouse.'
+    },
+    {
+      icon: <BadgeDollarSign size={20} />,
+      title: 'Low Cost',
+      description: 'Completely open-source hardware and software solutions for everyone, from casual players to serious competitors. Total engineering costs are less than $30.'
+    },
+    {
+      icon: <CloudLightning size={20} />,
+      title: 'Quick Setup',
+      description: 'Easily set up and connect to your devices in minutes, with no complicated installation required.'
     }
   ];
 

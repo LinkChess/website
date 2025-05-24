@@ -654,7 +654,7 @@ const ChessBoard: React.FC = () => {
               <div className="mt-6">
                 <h4 className="text-sm font-medium text-gray-700 mb-2">Hardware Integration</h4>
                 <p className="text-sm text-gray-600">
-                  The ChessLink board uses embedded sensors to detect piece movements 
+                  The ChessLink board uses only phototransistors to detect piece movements 
                   and sends the data to this web interface for real-time visualization and analysis.
                 </p>
               </div>

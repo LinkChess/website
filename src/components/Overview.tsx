@@ -60,7 +60,7 @@ const Overview: React.FC = () => {
                       <Info className="h-4 w-4 text-accent" />
                     </div>
                     <div className="ml-3">
-                      <p><strong className="font-medium text-gray-900">Microcontroller:</strong> 4 Arduino Nanos read sensor data and communicate with the web app.</p>
+                      <p><strong className="font-medium text-gray-900">Microcontroller:</strong> 4 Arduino Nanos read sensor data, send through I2C to an ESP32 which communicates with the web app through Bluetooth.</p>
                     </div>
                   </li>
                 </ul>
@@ -107,7 +107,7 @@ const Overview: React.FC = () => {
                     </div>
                     <div>
                       <h3 className="font-semibold text-gray-900 mb-1">Board Sensors → Arduino</h3>
-                      <p className="text-sm">As soon as you move a piece, the board's sensors note the change in position.</p>
+                      <p className="text-sm">Every scan, we check for changes in ambient light. As soon as you move a piece, the board's sensors note the change in position.</p>
                     </div>
                   </li>
                   <li className="relative">
@@ -116,7 +116,7 @@ const Overview: React.FC = () => {
                     </div>
                     <div>
                       <h3 className="font-semibold text-gray-900 mb-1">Arduino → Web App</h3>
-                      <p className="text-sm">The Arduino sends the move data via serial or other communication channel to our Node.js-based server.</p>
+                      <p className="text-sm">For squares with pieces, we run a time-multiplexed, background subtraction (pre-calibrated) routine to determine the type and colour of the piece. Under each piece, we have one of twelve different coloured stickers. Every 300 microseconds we flash the respective RGB sensor colours then take a reading. We are able to then build a colour profile for the square. Using a simple euclidean-distance mapping we label each square as a certain piece.</p>
                     </div>
                   </li>
                   <li className="relative">
@@ -124,8 +124,8 @@ const Overview: React.FC = () => {
                       <span className="text-xs font-medium text-accent">3</span>
                     </div>
                     <div>
-                      <h3 className="font-semibold text-gray-900 mb-1">Web App & Database</h3>
-                      <p className="text-sm">Logs moves, stores games, and delivers real-time visual updates with analysis features.</p>
+                      <h3 className="font-semibold text-gray-900 mb-1">Arduino → Web App</h3>
+                      <p className="text-sm">The Arduino sends the move data through i2c to an ESP32 which in turn sends through serial or other communication channel to our Node.js-based server.</p>
                     </div>
                   </li>
                   <li className="relative">
@@ -133,8 +133,26 @@ const Overview: React.FC = () => {
                       <span className="text-xs font-medium text-accent">4</span>
                     </div>
                     <div>
+                      <h3 className="font-semibold text-gray-900 mb-1">Web App & Local Viewer</h3>
+                      <p className="text-sm">Logs moves, stores games, and delivers real-time visual updates with analysis features. The local viewer is able to see moves as they come in and debug the board onsite.</p>
+                    </div>
+                  </li>
+                  <li className="relative">
+                    <div className="absolute -left-[25px] flex h-6 w-6 items-center justify-center rounded-full bg-blue-50 border border-white">
+                      <span className="text-xs font-medium text-accent">5</span>
+                    </div>
+                    <div>
                       <h3 className="font-semibold text-gray-900 mb-1">Feedback to the Board</h3>
                       <p className="text-sm">LED lights or audio prompts may be triggered based on the game state or training mode settings.</p>
+                    </div>
+                  </li>
+                  <li className="relative">
+                    <div className="absolute -left-[25px] flex h-6 w-6 items-center justify-center rounded-full bg-blue-50 border border-white">
+                      <span className="text-xs font-medium text-accent">6</span>
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900 mb-1">Local Viewer → World Viewer</h3>
+                      <p className="text-sm">We aim to push the changes of the local state (your laptop) to a global site (this site) where users across the world can see games as they come in.</p>
                     </div>
                   </li>
                 </ol>
@@ -218,6 +236,14 @@ const Overview: React.FC = () => {
                       </div>
                       <div className="ml-4">
                         <p><strong className="font-medium text-gray-900">Real-time Synchronization:</strong> Any move made on the physical board instantly appears in the digital interface, and analysis can be viewed immediately.</p>
+                      </div>
+                    </li>
+                    <li className="flex items-start">
+                      <div className="flex-shrink-0 rounded-full bg-blue-50 p-1.5 mt-1">
+                        <LucideMonitor className="h-5 w-5 text-accent" />
+                      </div>
+                      <div className="ml-4">
+                        <p><strong className="font-medium text-gray-900">Actual Piece Detection</strong> Any piece, regardless of colour and starting position will be able to be sensed. This approach differs from common approaches using hall-effect sensors.</p>
                       </div>
                     </li>
                   </ul>
