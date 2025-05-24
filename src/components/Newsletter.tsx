@@ -52,7 +52,7 @@ const Newsletter: React.FC = () => {
               </svg>
             </a>
             <a 
-              href="https://www.youtube.com/watch?v=IZxIWcn1aSM" 
+              href="https://www.youtube.com/watch?v=CkrfsJtZPF4" 
               target="_blank" 
               rel="noopener noreferrer"
               className="text-gray-600 hover:text-primary transition-colors"

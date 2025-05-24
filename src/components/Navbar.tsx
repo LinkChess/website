@@ -23,7 +23,7 @@ const Navbar: React.FC = () => {
     { name: 'Software', href: isHomePage ? '#software' : '/#software' },
     { name: 'Video Demo', href: isHomePage ? '#video-demo' : '/#video-demo' },
     { name: 'Newsletter', href: isHomePage ? '#newsletter' : '/#newsletter' },
-    { name: 'Demo', href: '/demo' },
+    // { name: 'Demo', href: '/demo' },
     { name: 'Live Games', href: '/live' },
     { name: 'Play Chess', href: '/play' },
   ];

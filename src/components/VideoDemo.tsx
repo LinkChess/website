@@ -13,7 +13,7 @@ const VideoDemo: React.FC = () => {
         
         <div className="max-w-4xl mx-auto relative" style={{ paddingBottom: '56.25%', height: 0 }}>
           <iframe 
-            src="https://www.youtube.com/embed/IZxIWcn1aSM" 
+            src="https://www.youtube.com/embed/CkrfsJtZPF4" 
             title="ChessLink Demo"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
             allowFullScreen

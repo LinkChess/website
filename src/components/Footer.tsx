@@ -31,7 +31,7 @@ const Footer: React.FC = () => {
               <li><a href="/#software" className="text-gray-400 hover:text-white transition-colors">Software</a></li>
               <li><a href="/#video-demo" className="text-gray-400 hover:text-white transition-colors">Video Demo</a></li>
               <li><a href="/#newsletter" className="text-gray-400 hover:text-white transition-colors">Newsletter</a></li>
-              <li><a href="/demo" className="text-gray-400 hover:text-white transition-colors">Demo</a></li>
+              {/* <li><a href="/demo" className="text-gray-400 hover:text-white transition-colors">Demo</a></li> */}
               <li><a href="/live" className="text-gray-400 hover:text-white transition-colors">Live Games</a></li>
               <li><a href="/play" className="text-gray-400 hover:text-white transition-colors">Play Chess</a></li>
               <li><a href="https://github.com/LinkChess/chesslink-v1" className="text-gray-400 hover:text-white transition-colors">Hardware Repo</a></li>
