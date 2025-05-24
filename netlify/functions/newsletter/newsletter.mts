@@ -1,16 +1,45 @@
-import { Context } from '@netlify/functions'
+import { Handler, HandlerEvent } from '@netlify/functions'
+import fetch from 'node-fetch';
 
 const { EMAIL_TOKEN } = process.env
-import fetch from 'node-fetch';
 
 // following https://andrewstiefel.com/netlify-functions-email-subscription/
 
-exports.handler = async function (event, context) {
+const handler: Handler = async function (event: HandlerEvent) {
   // your server-side functionality
-  const email = JSON.parse(event.body).payload.email
-  console.log(`Received a submission: ${email}`)
+  let email: string;
   
-  const response = await fetch( 'https://api.buttondown.email/v1/subscribers', {
+  try {
+    // Try parsing as JSON first
+    if (event.body) {
+      const body = JSON.parse(event.body);
+      email = body.payload?.email || body.email;
+    } else {
+      throw new Error('Empty request body');
+    }
+  } catch (error) {
+    // If JSON parsing fails, try handling form data
+    if (event.body && event.body.includes('email=')) {
+      const params = new URLSearchParams(event.body);
+      email = params.get('email') || '';
+    } else {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ error: 'Invalid request format' })
+      };
+    }
+  }
+  
+  if (!email) {
+    return {
+      statusCode: 400,
+      body: JSON.stringify({ error: 'Email is required' })
+    };
+  }
+  
+  console.log(`Received a submission: ${email}`);
+  
+  const response = await fetch('https://api.buttondown.email/v1/subscribers', {
     method: 'POST',
     headers: {
       Authorization: `Token ${EMAIL_TOKEN}`,
@@ -28,3 +57,5 @@ exports.handler = async function (event, context) {
       },
   }
 }
+
+export { handler };
