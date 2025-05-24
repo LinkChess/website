@@ -7,9 +7,9 @@ on:
       - main
 
 jobs:
-  deploy:
+  build-and-preview:
     runs-on: ubuntu-latest
-
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -43,9 +43,20 @@ jobs:
           mkdir -p dist/game/placeholder
           cp dist/index.html dist/game/placeholder/index.html
           echo "Created static route fallbacks"
-
-      - name: List deployment files
-        run: ls -la dist/
+          
+  deploy-production:
+    needs: build-and-preview
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://chesslink.site
+    
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: dist-files
+          path: dist
 
       - name: Upload Files via SCP
         uses: appleboy/scp-action@master

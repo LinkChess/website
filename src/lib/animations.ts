@@ -1,5 +1,4 @@
-
-import { useEffect, useState, useRef, RefObject } from 'react';
+import { useEffect, useState, useRef, RefObject } from "react";
 
 export function useInView() {
   const [isInView, setIsInView] = useState(false);
@@ -7,7 +6,7 @@ export function useInView() {
 
   useEffect(() => {
     if (!ref.current) return;
-    
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -17,13 +16,13 @@ export function useInView() {
       },
       {
         root: null,
-        rootMargin: '0px',
+        rootMargin: "0px",
         threshold: 0.1,
-      }
+      },
     );
-    
+
     observer.observe(ref.current);
-    
+
     return () => {
       if (ref.current) {
         observer.unobserve(ref.current);
@@ -49,7 +48,7 @@ export function useAnimatedRef<T extends HTMLElement>() {
           observer.unobserve(currentRef);
         }
       },
-      { threshold: 0.1 }
+      { threshold: 0.1 },
     );
 
     observer.observe(currentRef);
@@ -65,7 +64,9 @@ export function useAnimatedRef<T extends HTMLElement>() {
 }
 
 export function useSequentialAnimation(count: number, delay: number = 200) {
-  const [visibleItems, setVisibleItems] = useState<boolean[]>(Array(count).fill(false));
+  const [visibleItems, setVisibleItems] = useState<boolean[]>(
+    Array(count).fill(false),
+  );
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -77,27 +78,27 @@ export function useSequentialAnimation(count: number, delay: number = 200) {
         if (entry.isIntersecting) {
           // Start the sequence of animations once the container is in view
           let newVisibleItems = [...visibleItems];
-          
+
           const animateItems = (index: number) => {
             if (index >= count) return;
-            
+
             newVisibleItems[index] = true;
             setVisibleItems([...newVisibleItems]);
-            
+
             setTimeout(() => {
               animateItems(index + 1);
             }, delay);
           };
-          
+
           animateItems(0);
           observer.unobserve(container);
         }
       },
-      { threshold: 0.1 }
+      { threshold: 0.1 },
     );
 
     observer.observe(container);
-    
+
     return () => {
       if (container) {
         observer.unobserve(container);

@@ -13,8 +13,8 @@ const Newsletter: React.FC = () => {
             Subscribe to our newsletter to receive development updates, announcements, and early access opportunities.
           </p>
             <form 
-            action="https://send.pageclip.co/5c1QquHZx1ToqFrGclSR1Br9z2tI9iMH/Newsletter" 
-            method="post"
+            action="/.netlify/functions/newsletter" 
+            method="POST"
             className="flex flex-col sm:flex-row gap-4 max-w-xl mx-auto pageclip-form"
             >
             <input
