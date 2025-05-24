@@ -10,7 +10,7 @@ const SoundSettingsPage: React.FC = () => {
       
       <main className="flex-grow">
         {/* Header Section */}
-        <div className="py-10 bg-gradient-to-b from-blue-50 to-white">
+        <div className="py-20 bg-gradient-to-b from-blue-50 to-white">
           <div className="container mx-auto px-4 text-center">
             <h1 className="text-4xl font-bold mb-4">Sound Settings</h1>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">

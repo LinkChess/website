@@ -53,7 +53,7 @@ const handler: Handler = async function (event: HandlerEvent) {
   return {
       statusCode: 302,
       headers: {
-          'Location': '/confirmation/',
+          'Location': '/confirmation',
       },
   }
 }

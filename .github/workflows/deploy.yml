@@ -33,12 +33,13 @@ jobs:
 
       - name: Create Static Route Fallbacks
         run: |
-          mkdir -p dist/demo dist/play dist/sounds dist/live dist/game
+          mkdir -p dist/demo dist/play dist/sounds dist/live dist/game dist/confirmation
           cp dist/index.html dist/demo/index.html
           cp dist/index.html dist/play/index.html
           cp dist/index.html dist/sounds/index.html
           cp dist/index.html dist/live/index.html
           cp dist/index.html dist/game/index.html
+          cp dist/index.html dist/confirmation/index.html
           # Create a directory structure for game IDs
           mkdir -p dist/game/placeholder
           cp dist/index.html dist/game/placeholder/index.html
