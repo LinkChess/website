@@ -45,7 +45,7 @@ const handler: Handler = async function (event: HandlerEvent) {
       Authorization: `Token ${EMAIL_TOKEN}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ email }),
+    body: JSON.stringify({ email_address: email }),
   });
 
   let responseText = await response.text();
