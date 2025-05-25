@@ -4,6 +4,12 @@
 [functions]
    directory = "netlify/functions/"
 
+# Handle API routes
+[[redirects]]
+  from = "/api/newsletter"
+  to = "/.netlify/functions/api-newsletter"
+  status = 200
+
 # Handle Single Page Application routing
 [[redirects]]
   from = "/*"

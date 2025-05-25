@@ -66,7 +66,7 @@ jobs:
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.KEY }}
           port: ${{ secrets.PORT || 22 }}
-          source: "dist/*,server/newsletter-api.js,server/setup-newsletter-api.sh"
+          source: "dist/*"
           target: "/var/www/chesslink.site/"
           strip_components: 1
           overwrite: true
@@ -93,13 +93,4 @@ jobs:
             echo "Restarting Nginx..."
             sudo systemctl restart nginx || sudo service nginx restart || \
               sudo /etc/init.d/nginx restart || echo "All nginx restart methods failed"
-            
-            # Setup and restart the newsletter API service
-            echo "Setting up newsletter API service..."
-            cd /var/www/chesslink.site/server
-            chmod +x setup-newsletter-api.sh
-            sudo ./setup-newsletter-api.sh
-            echo "Restarting newsletter API service..."
-            sudo systemctl restart newsletter-api || echo "Newsletter API service restart failed"
-            
             echo "Deployment commands finished."

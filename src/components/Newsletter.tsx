@@ -1,19 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Mail } from 'lucide-react';
 
 const Newsletter: React.FC = () => {
-  const [formAction, setFormAction] = useState<string>('/api/newsletter');
-  
-  useEffect(() => {
-    // Check if we're on Netlify for development/testing
-    if (window.location.hostname.includes('netlify.app')) {
-      setFormAction('/.netlify/functions/newsletter');
-    } else {
-      // In production, use our server API
-      setFormAction('/api/newsletter');
-    }
-  }, []);
-
   return (
     <section className="py-16 bg-gray-100" id="newsletter">
       <div className="container mx-auto px-4">
@@ -23,11 +11,11 @@ const Newsletter: React.FC = () => {
           <p className="text-xl text-gray-600 mb-8">
             Subscribe to our newsletter to receive development updates, announcements, and early access opportunities.
           </p>
-            <form 
-            action={formAction}
+          <form 
+            action="/api/newsletter" 
             method="POST"
             className="flex flex-col sm:flex-row gap-4 max-w-xl mx-auto pageclip-form"
-            >
+          >
             <input
               type="email"
               name="email"
