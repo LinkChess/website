@@ -26,6 +26,7 @@ jobs:
       - name: Check npm version
         run: npm --version
 
+
       - name: Build Site
         run: npm run build
         env:
@@ -40,16 +41,16 @@ jobs:
           cp dist/index.html dist/live/index.html
           cp dist/index.html dist/game/index.html
           cp dist/index.html dist/confirmation/index.html
-          # Create a directory structure for game IDs
           mkdir -p dist/game/placeholder
           cp dist/index.html dist/game/placeholder/index.html
           echo "Created static route fallbacks"
-      
+
       - name: Upload dist directory as artifact
         uses: actions/upload-artifact@v3
         with:
           name: dist-files
           path: dist
+
 
   deploy-production:
     needs: build-and-preview
