@@ -9,6 +9,7 @@
   from = "/api/newsletter"
   to = "/.netlify/functions/api-newsletter"
   status = 200
+  force = true
 
 # Handle Single Page Application routing
 [[redirects]]

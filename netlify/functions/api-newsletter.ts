@@ -4,13 +4,37 @@ import fetch from 'node-fetch';
 const { EMAIL_TOKEN } = process.env;
 
 export const handler: Handler = async (event) => {
+  // Set CORS headers for all responses
+  const headers = {
+    'Access-Control-Allow-Origin': '*', // Or your specific domains
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  };
+  
+  // Handle OPTIONS requests (CORS preflight)
+  if (event.httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 204,
+      headers,
+      body: ''
+    };
+  }
+  
   // Only handle POST requests
   if (event.httpMethod !== 'POST') {
     return {
       statusCode: 405,
+      headers,
       body: JSON.stringify({ error: 'Method not allowed' })
     };
   }
+
+  console.log('Received request to api-newsletter:', { 
+    headers: event.headers,
+    path: event.path,
+    httpMethod: event.httpMethod,
+    body: event.body ? event.body.substring(0, 100) : null // Log first 100 chars of body
+  });
 
   // Parse the email from form data or JSON
   let email: string;
@@ -31,6 +55,7 @@ export const handler: Handler = async (event) => {
     } else {
       return {
         statusCode: 400,
+        headers,
         body: JSON.stringify({ error: 'Invalid request format' })
       };
     }
@@ -39,6 +64,7 @@ export const handler: Handler = async (event) => {
   if (!email) {
     return {
       statusCode: 400,
+      headers,
       body: JSON.stringify({ error: 'Email is required' })
     };
   }
@@ -66,6 +92,7 @@ export const handler: Handler = async (event) => {
         return {
           statusCode: 302,
           headers: {
+            ...headers,
             'Location': '/confirmation?status=already_exists',
           },
         };
@@ -76,6 +103,7 @@ export const handler: Handler = async (event) => {
         return {
           statusCode: 302,
           headers: {
+            ...headers,
             'Location': '/confirmation',
           },
         };
@@ -85,6 +113,7 @@ export const handler: Handler = async (event) => {
       return {
         statusCode: 302,
         headers: {
+          ...headers,
           'Location': '/confirmation?status=error',
         },
       };
@@ -94,6 +123,7 @@ export const handler: Handler = async (event) => {
       return {
         statusCode: 302,
         headers: {
+          ...headers,
           'Location': '/confirmation?status=error',
         },
       };
@@ -102,6 +132,7 @@ export const handler: Handler = async (event) => {
     console.error('Error sending to Buttondown API:', error);
     return {
       statusCode: 500,
+      headers,
       body: JSON.stringify({ error: 'Failed to process subscription' })
     };
   }

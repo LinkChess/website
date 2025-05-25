@@ -12,6 +12,7 @@ import Connect from "./pages/Connect";
 import Game from "./pages/Game";
 import LiveGamesPage from "./pages/Live";
 import ConfirmationPage from "./pages/Confirmation";
+import NewsletterTest from "./pages/NewsletterTest";
 
 const queryClient = new QueryClient();
 
@@ -30,6 +31,7 @@ const App = () => (
           <Route path="/game/:gameId" element={<Game />} />
           <Route path="/live" element={<LiveGamesPage />} />
           <Route path="/confirmation" element={<ConfirmationPage />} />
+          <Route path="/newsletter-test" element={<NewsletterTest />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

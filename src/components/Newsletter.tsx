@@ -1,7 +1,48 @@
-import React from 'react';
+import React, { FormEvent, useState } from 'react';
 import { Mail } from 'lucide-react';
 
 const Newsletter: React.FC = () => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    
+    const formData = new FormData(e.currentTarget);
+    const email = formData.get('email') as string;
+    
+    try {
+      // First try using the API endpoint which will be handled by redirects
+      const response = await fetch('/api/newsletter', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      });
+      
+      console.log('Form submission response:', {
+        status: response.status,
+        redirected: response.redirected,
+        url: response.url
+      });
+      
+      // Handle redirect from response
+      if (response.redirected) {
+        window.location.href = response.url;
+      } else if (response.ok) {
+        window.location.href = '/confirmation';
+      } else {
+        window.location.href = '/confirmation?status=error';
+      }
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      window.location.href = '/confirmation?status=error';
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <section className="py-16 bg-gray-100" id="newsletter">
       <div className="container mx-auto px-4">
@@ -12,8 +53,7 @@ const Newsletter: React.FC = () => {
             Subscribe to our newsletter to receive development updates, announcements, and early access opportunities.
           </p>
           <form 
-            action="/api/newsletter" 
-            method="POST"
+            onSubmit={handleSubmit}
             className="flex flex-col sm:flex-row gap-4 max-w-xl mx-auto pageclip-form"
           >
             <input
@@ -27,8 +67,9 @@ const Newsletter: React.FC = () => {
             <button 
               type="submit" 
               className="button pageclip-form__submit bg-accent hover:bg-accent-dark text-white font-medium py-3 px-6 rounded-lg transition-colors"
+              disabled={isSubmitting}
             >
-              Subscribe
+              {isSubmitting ? 'Subscribing...' : 'Subscribe'}
             </button>
             </form>
 
