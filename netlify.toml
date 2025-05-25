@@ -9,3 +9,11 @@
   from = "/*"
   to = "/index.html"
   status = 200
+
+
+[dev]
+  command = "npm run dev"
+  port = 5173
+  targetPort = 8080
+  framework = "vite"
+  autoLaunch = true

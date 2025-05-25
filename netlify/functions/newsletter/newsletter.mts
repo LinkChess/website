@@ -50,11 +50,42 @@ const handler: Handler = async function (event: HandlerEvent) {
 
   let responseText = await response.text();
   console.log('response:', responseText);
-  return {
-      statusCode: 302,
-      headers: {
-          'Location': '/confirmation',
-      },
+
+  // if response has a param code = email_already_exists then add that to the confirmation header
+  try {
+    const responseData = JSON.parse(responseText);
+    if (responseData.code === 'email_already_exists') {
+      console.log('email already exists');
+      return {
+        statusCode: 302,
+        headers: {
+            'Location': '/confirmation?status=already_exists',
+        },
+      }
+    }
+    else if (responseData.email_address === email) {
+      // on success, we expect to get the email address back
+      console.log('Successfully added');
+      return {
+        statusCode: 302,
+        headers: {
+            'Location': '/confirmation',
+        },
+      }
+    }
+    return {
+      // default error handler
+        statusCode: 302,
+        headers: {
+            'Location': '/confirmation?status=error',
+        },
+    }
+  } catch (error) {
+    console.error('Error parsing response:', error);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: 'Failed to process subscription' })
+    };
   }
 }
 
