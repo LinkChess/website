@@ -44,7 +44,13 @@ jobs:
           mkdir -p dist/game/placeholder
           cp dist/index.html dist/game/placeholder/index.html
           echo "Created static route fallbacks"
-          
+      
+      - name: Upload dist directory as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: dist-files
+          path: dist
+
   deploy-production:
     needs: build-and-preview
     runs-on: ubuntu-latest
