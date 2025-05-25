@@ -30,7 +30,7 @@ const ConfirmationPage: React.FC = () => {
             <h1 className="text-4xl font-bold mb-4">
               {hasError ? 'Subscription Status' :
                 (alreadyExists ? 'Already Subscribed' :
-                  (isConfirmed ? 'Email Confirmed' : 'Subscription Confirmed'))}
+                  (isConfirmed ? 'Email Confirmed' : 'Subscription Pending'))}
             </h1>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
               {hasError
@@ -67,7 +67,7 @@ const ConfirmationPage: React.FC = () => {
                     ? 'Already a Subscriber'
                     : (isConfirmed
                       ? 'Email Successfully Confirmed'
-                      : 'Subscription Successful'))}
+                      : 'Subscription Pending'))}
               </h2>
 
               <p className="text-gray-600 mb-6">
