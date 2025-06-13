@@ -21,66 +21,66 @@ const Gallery: React.FC = () => {
   // Define themes for each page
   const pageThemes: PageTheme[] = [
     {
-      title: "Early Prototyping & Design",
-      description: "Explore the initial design phase of ChessLink. These images showcase our team's engineering process, 3D printing experiments, and circuit design planning."
+      title: "Final Product & Demonstrations",
+      description: "See the completed ChessLink in action. These images highlight the final product design, real-world demonstrations, and our team showcasing the technology."
     },
     {
       title: "Development & Testing",
       description: "Follow the journey of ChessLink through development and testing. See how we refined our prototypes and conducted quality testing to ensure reliable performance."
     },
     {
-      title: "Final Product & Demonstrations",
-      description: "See the completed ChessLink in action. These images highlight the final product design, real-world demonstrations, and our team showcasing the technology."
+      title: "Early Prototyping & Design",
+      description: "Explore the initial design phase of ChessLink. These images showcase our team's engineering process, 3D printing experiments, and circuit design planning."
     }
   ];
 
   // List of gallery images with captions
   const images: GalleryImage[] = [
-    // PAGE 1: Early Prototyping & Design
+    // PAGE 1: Final Product & Demonstrations
     {
-      src: '/img/gallery/whiteboard.jpg',
-      alt: 'Initial design planning',
-      caption: 'Early brainstorming and design planning on the whiteboard'
+      src: '/img/gallery/half-board.jpg',
+      alt: 'Half-completed board',
+      caption: 'A half-completed chess board showing the internal structure'
     },
     {
-      src: '/img/gallery/easyeda.jpg',
-      alt: 'PCB design',
-      caption: 'Designing the PCB layout using EasyEDA'
+      src: '/img/gallery/final-schematic.png',
+      alt: 'Final chess board schematic',
+      caption: 'The completed ChessLink smart chess board schematic'
     },
     {
-      src: '/img/gallery/different-3dprints.jpg',
-      alt: '3D printing iterations',
-      caption: 'Different iterations of 3D printed components for the chess board'
+      src: '/img/gallery/final-2d.png',
+      alt: '2D render of final design',
+      caption: '2D rendering of the final ChessLink design'
     },
     {
-      src: '/img/gallery/version-1-pcb.png',
-      alt: 'Version 1 PCB design',
-      caption: 'The first version of our PCB design for ChessLink'
+      src: '/img/gallery/team-demo.jpeg',
+      alt: 'Team photo on demo day',
+      caption: 'Team members: Victor Zheng, Jaffar Keikei, Kevin Li, Chiatzen Wang, and Prof. Paul Dietz (project advisor) at our demo day',
     },
     {
-      src: '/img/gallery/first-setup.jpg',
-      alt: 'The first setup',
-      caption: 'The first setup of our prototype with basic components for sensing'
+      src: '/img/gallery/demo-day1.jpg',
+      alt: 'Demo day presentation',
+      caption: 'Presenting ChessLink at our university demo day'
     },
     {
-      src: '/img/gallery/sizing.jpg',
-      alt: 'Component sizing',
-      caption: 'Testing the size and fit of various components'
+      src: '/img/gallery/demo-day2.jpg',
+      alt: 'Audience interaction',
+      caption: 'Visitors interacting with ChessLink at our demo'
     },
     {
-      src: '/img/gallery/version-1-setup.jpg',
-      alt: 'Version 1 prototype setup',
-      caption: 'The first complete prototype setup ready for testing'
+      src: '/img/gallery/demo-day3.jpg',
+      alt: 'ChessLink Demo Day with professors',
+      caption: 'ChessLink being demonstrated at our demo day in front of fellow students, faculty, and community'
     },
     {
-      src: '/img/gallery/v1-setup.jpg',
-      alt: 'Testing environment',
-      caption: 'Testing environment for our version 1 prototype'
+      src: '/img/gallery/demo-day4.jpg',
+      alt: 'ChessLink Demo Day with professors',
+      caption: 'ChessLink being demonstrated at our demo day in front of fellow students, faculty, and community'
     },
     {
-      src: '/img/gallery/stickers.jpg',
-      alt: 'Using stickers for piece detection',
-      caption: 'Calibrating the sensors using stickers on the chess pieces'
+      src: '/img/gallery/demo-day5.jpeg',
+      alt: 'ChessLink Demo Day photos',
+      caption: 'ChessLink being demonstrated at our demo day in front of fellow students, faculty, and community'
     },
     // PAGE 2: Development & Testing
     {
@@ -128,52 +128,52 @@ const Gallery: React.FC = () => {
       alt: 'Using a whiteboard to explain system design',
       caption: 'A whiteboard system design'
     },
-    // PAGE 3: Final Product & Demonstrations,
+    // PAGE 3: Early Prototyping & Design
     {
-       src: '/img/gallery/half-board.jpg',
-      alt: 'Half-completed board',
-      caption: 'A half-completed chess board showing the internal structure'
+      src: '/img/gallery/whiteboard.jpg',
+      alt: 'Initial design planning',
+      caption: 'Early brainstorming and design planning on the whiteboard'
     },
     {
-      src: '/img/gallery/final-schematic.png',
-      alt: 'Final chess board schematic',
-      caption: 'The completed ChessLink smart chess board schematic'
+      src: '/img/gallery/easyeda.jpg',
+      alt: 'PCB design',
+      caption: 'Designing the PCB layout using EasyEDA'
     },
     {
-      src: '/img/gallery/final-2d.png',
-      alt: '2D render of final design',
-      caption: '2D rendering of the final ChessLink design'
+      src: '/img/gallery/different-3dprints.jpg',
+      alt: '3D printing iterations',
+      caption: 'Different iterations of 3D printed components for the chess board'
     },
     {
-      src: '/img/gallery/team-demo.jpeg',
-      alt: 'Team photo on demo day',
-      caption: 'Team members: Victor Zheng, Jaffar Keikei, Kevin Li, Chiatzen Wang, and Prof. Paul Dietz (project advisor) at our demo day',
+      src: '/img/gallery/version-1-pcb.png',
+      alt: 'Version 1 PCB design',
+      caption: 'The first version of our PCB design for ChessLink'
     },
     {
-      src: '/img/gallery/demo-day1.jpg',
-      alt: 'Demo day presentation',
-      caption: 'Presenting ChessLink at our university demo day'
+      src: '/img/gallery/first-setup.jpg',
+      alt: 'The first setup',
+      caption: 'The first setup of our prototype with basic components for sensing'
     },
     {
-      src: '/img/gallery/demo-day2.jpg',
-      alt: 'Audience interaction',
-      caption: 'Visitors interacting with ChessLink at our demo'
+      src: '/img/gallery/sizing.jpg',
+      alt: 'Component sizing',
+      caption: 'Testing the size and fit of various components'
     },
     {
-      src: '/img/gallery/demo-day3.jpg',
-      alt: 'ChessLink Demo Day with professors',
-      caption: 'ChessLink being demonstrated at our demo day in front of fellow students, faculty, and community'
+      src: '/img/gallery/version-1-setup.jpg',
+      alt: 'Version 1 prototype setup',
+      caption: 'The first complete prototype setup ready for testing'
     },
     {
-      src: '/img/gallery/demo-day4.jpg',
-      alt: 'ChessLink Demo Day with professors',
-      caption: 'ChessLink being demonstrated at our demo day in front of fellow students, faculty, and community'
+      src: '/img/gallery/v1-setup.jpg',
+      alt: 'Testing environment',
+      caption: 'Testing environment for our version 1 prototype'
     },
     {
-      src: '/img/gallery/demo-day5.jpeg',
-      alt: 'ChessLink Demo Day photos',
-      caption: 'ChessLink being demonstrated at our demo day in front of fellow students, faculty, and community'
-    }
+      src: '/img/gallery/stickers.jpg',
+      alt: 'Using stickers for piece detection',
+      caption: 'Calibrating the sensors using stickers on the chess pieces'
+    },
   ];
 
   // State for enlarged image modal
